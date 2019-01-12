@@ -18,6 +18,7 @@ package com.arpnetworking.metrics.portal.scheduling.impl;
 import akka.actor.AbstractActorWithTimers;
 import akka.actor.ActorRef;
 import akka.actor.InvalidActorNameException;
+import akka.actor.Props;
 import com.arpnetworking.metrics.portal.scheduling.JobRef;
 import com.arpnetworking.metrics.portal.scheduling.JobRepository;
 import com.arpnetworking.steno.Logger;
@@ -39,6 +40,18 @@ import java.util.concurrent.TimeUnit;
 public final class JobSchedulerCoordinator<T> extends AbstractActorWithTimers {
     private final JobRepository<T> _repository;
     private final Organization _organization;
+
+    /**
+     * Props factory.
+     *
+     * @param <T> The type of result produced by the {@link JobRepository}'s jobs.
+     * @param repository The job to intermittently execute.
+     * @param organization The {@link Organization} whose jobs to coordinate.
+     * @return A new props to create this actor.
+     */
+    public static <T> Props props(final JobRepository<T> repository, final Organization organization) {
+        return Props.create(JobSchedulerCoordinator.class, () -> new JobSchedulerCoordinator<>(repository, organization));
+    }
 
     /**
      * todo.
