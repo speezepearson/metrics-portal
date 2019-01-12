@@ -29,6 +29,7 @@ import java.util.NoSuchElementException;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.stream.Stream;
 
 /**
  * A simple in-memory {@link JobRepository}. Not in any way persistent, probably not good for production usage.
@@ -78,6 +79,11 @@ public final class MapJobRepository<T> implements JobRepository<T> {
     public Optional<Instant> getLastRun(final UUID id, final Organization organization) throws NoSuchElementException {
         assertIsOpen();
         return Optional.ofNullable(_lastRuns.getOrDefault(organization, Maps.newHashMap()).get(id));
+    }
+
+    @Override
+    public Stream<Job<T>> getAllJobs() {
+        return _jobs.values().stream().flatMap(m -> m.values().stream());
     }
 
     @Override
