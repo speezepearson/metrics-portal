@@ -76,7 +76,7 @@ public interface JobRepository<T> {
      * @return A stream of every job in the repository. No order guaranteed.
      *         No guarantees about presence of jobs added by other threads/processes while the stream is running.
      */
-    Stream<Job<T>> getAllJobs();
+    Stream<Job<T>> getAllJobs(Organization organization);
 
     /**
      * Notify the repository that a job has started executing.

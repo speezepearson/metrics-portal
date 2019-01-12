@@ -68,7 +68,7 @@ public final class JobSchedulerCoordinator<T> extends AbstractActorWithTimers {
     public Receive createReceive() {
         return receiveBuilder()
                 .match(Tick.class, message -> {
-                    _repository.getAllJobs().forEach(job -> {
+                    _repository.getAllJobs(_organization).forEach(job -> {
                         final String actorId = "JobScheduler:" + job.getId();
                         final Option<ActorRef> ch = getContext().child(actorId);
                         if (!ch.isDefined()) {

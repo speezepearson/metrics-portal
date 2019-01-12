@@ -82,8 +82,8 @@ public final class MapJobRepository<T> implements JobRepository<T> {
     }
 
     @Override
-    public Stream<Job<T>> getAllJobs() {
-        return _jobs.values().stream().flatMap(m -> m.values().stream());
+    public Stream<Job<T>> getAllJobs(final Organization organization) {
+        return _jobs.get(organization).values().stream();
     }
 
     @Override
