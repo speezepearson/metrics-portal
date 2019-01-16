@@ -17,7 +17,6 @@ package com.arpnetworking.metrics.portal.scheduling.impl;
 
 import akka.actor.AbstractActorWithTimers;
 import akka.actor.ActorRef;
-import akka.actor.InvalidActorNameException;
 import akka.actor.Props;
 import com.arpnetworking.metrics.portal.scheduling.JobRef;
 import com.arpnetworking.metrics.portal.scheduling.JobRepository;
@@ -37,7 +36,7 @@ import java.util.concurrent.TimeUnit;
  *
  * @author Spencer Pearson (spencerpearson at dropbox dot com)
  */
-public final class JobSchedulerCoordinator<T> extends AbstractActorWithTimers {
+public final class JobCoordinator<T> extends AbstractActorWithTimers {
     private final JobRepository<T> _repository;
     private final Organization _organization;
 
@@ -50,7 +49,7 @@ public final class JobSchedulerCoordinator<T> extends AbstractActorWithTimers {
      * @return A new props to create this actor.
      */
     public static <T> Props props(final JobRepository<T> repository, final Organization organization) {
-        return Props.create(JobSchedulerCoordinator.class, () -> new JobSchedulerCoordinator<>(repository, organization));
+        return Props.create(JobCoordinator.class, () -> new JobCoordinator<>(repository, organization));
     }
 
     /**
@@ -58,7 +57,7 @@ public final class JobSchedulerCoordinator<T> extends AbstractActorWithTimers {
      * @param repository todo.
      * @param organization todo.
      */
-    public JobSchedulerCoordinator(final JobRepository<T> repository, final Organization organization) {
+    public JobCoordinator(final JobRepository<T> repository, final Organization organization) {
         _repository = repository;
         _organization = organization;
         timers().startPeriodicTimer("TICK", Tick.INSTANCE, TICK_INTERVAL);
@@ -90,7 +89,7 @@ public final class JobSchedulerCoordinator<T> extends AbstractActorWithTimers {
 
 
     private static final FiniteDuration TICK_INTERVAL = Duration.apply(1, TimeUnit.HOURS);
-    private static final Logger LOGGER = LoggerFactory.getLogger(JobSchedulerCoordinator.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(JobCoordinator.class);
 
     /**
      * Internal message, telling the scheduler to run any necessary jobs.
