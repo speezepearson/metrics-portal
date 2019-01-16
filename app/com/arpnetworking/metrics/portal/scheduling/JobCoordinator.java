@@ -74,13 +74,6 @@ public final class JobCoordinator<T> extends AbstractActorWithTimers {
         return Props.create(JobCoordinator.class, () -> new JobCoordinator<>(injector, clock, repositoryType, organization));
     }
 
-    /**
-     * todo.
-     * @param injector todo.
-     * @param clock todo.
-     * @param repositoryType todo.
-     * @param organization todo.
-     */
     private JobCoordinator(final Injector injector,
                            final Clock clock,
                            final Class<? extends JobRepository<T>> repositoryType,
