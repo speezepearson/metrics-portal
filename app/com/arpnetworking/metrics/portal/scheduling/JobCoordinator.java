@@ -46,11 +46,31 @@ public final class JobCoordinator<T> extends AbstractActorWithTimers {
      * Props factory.
      *
      * @param <T> The type of result produced by the {@link JobRepository}'s jobs.
-     * @param repositoryType The job to intermittently execute.
+     * @param injector The Guice injector to load the {@link JobRepository} from.
+     * @param repositoryType The type of the repository to load.
      * @param organization The {@link Organization} whose jobs to coordinate.
      * @return A new props to create this actor.
      */
-    public static <T> Props props(final Injector injector, final Clock clock, final Class<? extends JobRepository<T>> repositoryType, final Organization organization) {
+    public static <T> Props props(final Injector injector,
+                                  final Class<? extends JobRepository<T>> repositoryType,
+                                  final Organization organization) {
+        return props(injector, Clock.systemUTC(), repositoryType, organization);
+    }
+
+    /**
+     * Props factory.
+     *
+     * @param <T> The type of result produced by the {@link JobRepository}'s jobs.
+     * @param injector The Guice injector to load the {@link JobRepository} from.
+     * @param clock The clock the actor will use to determine when the anti-entropy process should run.
+     * @param repositoryType The type of the repository to load.
+     * @param organization The {@link Organization} whose jobs to coordinate.
+     * @return A new props to create this actor.
+     */
+    /* package-private */ static <T> Props props(final Injector injector,
+                                                 final Clock clock,
+                                                 final Class<? extends JobRepository<T>> repositoryType,
+                                                 final Organization organization) {
         return Props.create(JobCoordinator.class, () -> new JobCoordinator<>(injector, clock, repositoryType, organization));
     }
 
@@ -61,7 +81,10 @@ public final class JobCoordinator<T> extends AbstractActorWithTimers {
      * @param repositoryType todo.
      * @param organization todo.
      */
-    private JobCoordinator(final Injector injector, final Clock clock, final Class<? extends JobRepository<T>> repositoryType, final Organization organization) {
+    private JobCoordinator(final Injector injector,
+                           final Clock clock,
+                           final Class<? extends JobRepository<T>> repositoryType,
+                           final Organization organization) {
         _injector = injector;
         _clock = clock;
         _repositoryType = repositoryType;
@@ -74,7 +97,7 @@ public final class JobCoordinator<T> extends AbstractActorWithTimers {
         scheduleNextTick(0);
     }
 
-    private void scheduleNextTick(long nanosUntilTick) {
+    private void scheduleNextTick(final long nanosUntilTick) {
         timers().startSingleTimer("TICK", AntiEntropyTick.INSTANCE, scala.concurrent.duration.Duration.fromNanos(nanosUntilTick));
     }
 

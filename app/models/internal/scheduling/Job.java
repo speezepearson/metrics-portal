@@ -19,7 +19,6 @@ import akka.actor.ActorRef;
 import com.arpnetworking.metrics.portal.scheduling.Schedule;
 
 import java.time.Instant;
-import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.CompletionStage;
 

@@ -30,13 +30,13 @@ import models.internal.scheduling.Job;
 import scala.concurrent.duration.Duration;
 import scala.concurrent.duration.FiniteDuration;
 
-import javax.annotation.Nullable;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
+import javax.annotation.Nullable;
 
 /**
  * An actor that executes {@link Job}s.
@@ -143,7 +143,7 @@ public final class JobExecutorActor<T> extends AbstractActorWithTimers {
         _cachedJob = _jobRef.get(_injector);
     }
 
-    private void reloadCachedJobIfOutdated(Optional<String> currentETag) {
+    private void reloadCachedJobIfOutdated(final Optional<String> currentETag) {
         if (!currentETag.isPresent()
             || !_cachedJob.isPresent()
             || !_cachedJob.get().getETag().equals(currentETag.get())) {
@@ -233,7 +233,7 @@ public final class JobExecutorActor<T> extends AbstractActorWithTimers {
             /**
              * Public constructor.
              */
-            public Builder() {
+            Builder() {
                 super(Reload::new);
             }
 
@@ -243,7 +243,7 @@ public final class JobExecutorActor<T> extends AbstractActorWithTimers {
              * @param eTag The ETag.
              * @return This instance of Builder.
              */
-            public Builder setETag(final @Nullable String eTag) {
+            public Builder setETag(@Nullable final String eTag) {
                 _eTag = Optional.ofNullable(eTag);
                 return this;
             }

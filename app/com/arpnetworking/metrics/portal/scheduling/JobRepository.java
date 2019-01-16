@@ -71,8 +71,9 @@ public interface JobRepository<T> {
     Optional<Instant> getLastRun(UUID id, Organization organization) throws NoSuchElementException;
 
     /**
-     * Returns every job the repository contains.
+     * Returns every job the repository contains (for a given {@link Organization}).
      *
+     * @param organization The organization whose jobs to iterate over.
      * @return A stream of every job in the repository. No order guaranteed.
      *         No guarantees about presence of jobs added by other threads/processes while the stream is running.
      */
