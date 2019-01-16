@@ -18,6 +18,7 @@ package com.arpnetworking.metrics.portal.scheduling;
 import akka.actor.AbstractActorWithTimers;
 import akka.actor.PoisonPill;
 import akka.actor.Props;
+import com.arpnetworking.commons.builder.OvalBuilder;
 import com.arpnetworking.metrics.MetricsFactory;
 import com.arpnetworking.metrics.incubator.PeriodicMetrics;
 import com.arpnetworking.metrics.incubator.impl.TsdPeriodicMetrics;
@@ -29,6 +30,7 @@ import models.internal.scheduling.Job;
 import scala.concurrent.duration.Duration;
 import scala.concurrent.duration.FiniteDuration;
 
+import javax.annotation.Nullable;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
@@ -48,7 +50,9 @@ public final class JobExecutorActor<T> extends AbstractActorWithTimers {
     private final Injector _injector;
     private final JobRef<T> _jobRef;
     private final Clock _clock;
-    private PeriodicMetrics _periodicMetrics;
+    private final PeriodicMetrics _periodicMetrics;
+
+    private Optional<Job<T>> _cachedJob = Optional.empty();
 
     /**
      * Props factory.
@@ -87,7 +91,8 @@ public final class JobExecutorActor<T> extends AbstractActorWithTimers {
     @Override
     public void preStart() throws Exception {
         super.preStart();
-        timers().startSingleTimer("TICK", Tick.INSTANCE, TICK_INTERVAL);
+        getSelf().tell(Reload.FORCE, getSelf());
+        getSelf().tell(Tick.INSTANCE, getSelf());
     }
 
     /**
@@ -134,14 +139,27 @@ public final class JobExecutorActor<T> extends AbstractActorWithTimers {
                 });
     }
 
+    private void reloadCachedJob() {
+        _cachedJob = _jobRef.get(_injector);
+    }
+
+    private void reloadCachedJobIfOutdated(Optional<String> currentETag) {
+        if (!currentETag.isPresent()
+            || !_cachedJob.isPresent()
+            || !_cachedJob.get().getETag().equals(currentETag.get())) {
+            reloadCachedJob();
+        }
+    }
+
     @Override
     public Receive createReceive() {
         return receiveBuilder()
                 .match(Tick.class, message -> {
                     _periodicMetrics.recordCounter("job-executor-actor-ticks", 1);
 
+                    final Optional<Job<T>> job = _cachedJob; // local to ensure it doesn't change mid-message-handling
+
                     final JobRepository<T> repo = _jobRef.getRepository(_injector);
-                    final Optional<Job<T>> job = _jobRef.get(_injector);
                     if (!job.isPresent()) {
                         LOGGER.warn()
                                 .setMessage("no such job")
@@ -172,6 +190,9 @@ public final class JobExecutorActor<T> extends AbstractActorWithTimers {
                         scheduleNextTick(nextRun.get());
                     }
                 })
+                .match(Reload.class, message -> {
+                    reloadCachedJobIfOutdated(message.getETag());
+                })
                 .build();
     }
 
@@ -184,5 +205,48 @@ public final class JobExecutorActor<T> extends AbstractActorWithTimers {
      */
     /* package private */ static final class Tick {
         public static final Tick INSTANCE = new Tick();
+    }
+
+    /**
+     * Commands the actor to reload its job from its repository, if the cached ETag is out of date.
+     */
+    /* package private */ static final class Reload {
+        private final Optional<String> _eTag;
+        public static final Reload FORCE = new Builder().build();
+
+        private Reload(final Builder builder) {
+            _eTag = builder._eTag;
+        }
+
+        public Optional<String> getETag() {
+            return _eTag;
+        }
+
+        /**
+         * Implementation of builder pattern for {@link Reload}.
+         *
+         * @author Spencer Pearson (spencerpearson at dropbox dot com)
+         */
+        public static final class Builder extends OvalBuilder<Reload> {
+            private Optional<String> _eTag = null;
+
+            /**
+             * Public constructor.
+             */
+            public Builder() {
+                super(Reload::new);
+            }
+
+            /**
+             * Causes the actor not to reload if it equals the actor's current ETag. Optional. Defaults to null.
+             *
+             * @param eTag The ETag.
+             * @return This instance of Builder.
+             */
+            public Builder setETag(final @Nullable String eTag) {
+                _eTag = Optional.ofNullable(eTag);
+                return this;
+            }
+        }
     }
 }
