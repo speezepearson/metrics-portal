@@ -20,6 +20,10 @@ import akka.actor.Props;
 import akka.persistence.AbstractPersistentActorWithTimers;
 import com.arpnetworking.commons.builder.OvalBuilder;
 import com.arpnetworking.metrics.MetricsFactory;
+import com.arpnetworking.metrics.Unit;
+import com.arpnetworking.metrics.impl.BaseScale;
+import com.arpnetworking.metrics.impl.BaseUnit;
+import com.arpnetworking.metrics.impl.TsdUnit;
 import com.arpnetworking.metrics.incubator.PeriodicMetrics;
 import com.arpnetworking.metrics.incubator.impl.TsdPeriodicMetrics;
 import com.arpnetworking.steno.Logger;
@@ -95,7 +99,12 @@ public final class JobExecutorActor<T> extends AbstractPersistentActorWithTimers
     }
 
     private void scheduleNextTick(final Instant wakeUpBy) {
-        timers().startSingleTimer("TICK", Tick.INSTANCE, timeUntilNextTick(wakeUpBy));
+        final FiniteDuration timeRemaining = timeUntilNextTick(wakeUpBy);
+        _periodicMetrics.recordTimer(
+                "job_executor_actor_time_remaining",
+                timeRemaining.toNanos(),
+                Optional.of(NANOS));
+        timers().startSingleTimer("TICK", Tick.INSTANCE, timeRemaining);
     }
 
     private void executeAndScheduleNextTick(
@@ -227,6 +236,10 @@ public final class JobExecutorActor<T> extends AbstractPersistentActorWithTimers
 
     /* package private */ static final FiniteDuration TICK_INTERVAL = Duration.apply(1, TimeUnit.MINUTES);
     private static final Logger LOGGER = LoggerFactory.getLogger(JobExecutorActor.class);
+    private static final Unit NANOS = new TsdUnit.Builder()
+            .setScale(BaseScale.NANO)
+            .setBaseUnit(BaseUnit.SECOND)
+            .build();
 
     /**
      * Internal message, telling the scheduler to run any necessary jobs.
