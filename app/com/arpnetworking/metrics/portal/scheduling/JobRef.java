@@ -66,6 +66,10 @@ public final class JobRef<T> implements Serializable {
         return injector.getInstance(_repositoryType);
     }
 
+    public Class<? extends JobRepository<T>> getRepositoryType() {
+        return _repositoryType;
+    }
+
     public UUID getJobId() {
         return _jobId;
     }
