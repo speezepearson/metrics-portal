@@ -15,9 +15,9 @@
  */
 package com.arpnetworking.metrics.portal.scheduling;
 
-import akka.actor.AbstractActorWithTimers;
 import akka.actor.PoisonPill;
 import akka.actor.Props;
+import akka.persistence.AbstractPersistentActorWithTimers;
 import com.arpnetworking.commons.builder.OvalBuilder;
 import com.arpnetworking.metrics.MetricsFactory;
 import com.arpnetworking.metrics.incubator.PeriodicMetrics;
@@ -45,7 +45,7 @@ import javax.annotation.Nullable;
  *
  * @author Spencer Pearson (spencerpearson at dropbox dot com)
  */
-public final class JobExecutorActor<T> extends AbstractActorWithTimers {
+public final class JobExecutorActor<T> extends AbstractPersistentActorWithTimers {
 
     private final Injector _injector;
     private final JobRef<T> _jobRef;
@@ -194,6 +194,16 @@ public final class JobExecutorActor<T> extends AbstractActorWithTimers {
                     reloadCachedJobIfOutdated(message.getETag());
                 })
                 .build();
+    }
+
+    @Override
+    public Receive createReceiveRecover() {
+        return receiveBuilder().build();
+    }
+
+    @Override
+    public String persistenceId() {
+        return "com.arpnetworking.metrics.portal.scheduling.JobExecutorActor:" + _jobRef.getJobId();
     }
 
     /* package private */ static final FiniteDuration TICK_INTERVAL = Duration.apply(1, TimeUnit.MINUTES);
