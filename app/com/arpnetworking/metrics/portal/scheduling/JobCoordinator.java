@@ -87,10 +87,10 @@ public final class JobCoordinator<T> extends AbstractActorWithTimers {
     @Override
     public void preStart() throws Exception {
         super.preStart();
-        scheduleNextTick(0);
+        scheduleNextAntiEntropyTick(0);
     }
 
-    private void scheduleNextTick(final long nanosUntilTick) {
+    private void scheduleNextAntiEntropyTick(final long nanosUntilTick) {
         timers().startSingleTimer("TICK", AntiEntropyTick.INSTANCE, scala.concurrent.duration.Duration.fromNanos(nanosUntilTick));
     }
 
@@ -124,7 +124,7 @@ public final class JobCoordinator<T> extends AbstractActorWithTimers {
                     });
                     final Instant now = _clock.instant();
                     final Instant nextTickTime = startTime.plus(ANTI_ENTROPY_TICK_INTERVAL);
-                    scheduleNextTick(now.isBefore(nextTickTime) ? ChronoUnit.NANOS.between(now, nextTickTime) : 0);
+                    scheduleNextAntiEntropyTick(now.isBefore(nextTickTime) ? ChronoUnit.NANOS.between(now, nextTickTime) : 0);
                 })
                 .build();
     }
