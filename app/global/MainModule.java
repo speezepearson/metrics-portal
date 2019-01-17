@@ -21,9 +21,12 @@ import akka.actor.ActorSystem;
 import akka.actor.PoisonPill;
 import akka.actor.Props;
 import akka.cluster.Cluster;
+import akka.cluster.sharding.ClusterSharding;
+import akka.cluster.sharding.ClusterShardingSettings;
 import akka.cluster.singleton.ClusterSingletonManager;
 import akka.cluster.singleton.ClusterSingletonManagerSettings;
 import com.arpnetworking.commons.akka.GuiceActorCreator;
+import com.arpnetworking.commons.akka.ParallelLeastShardAllocationStrategy;
 import com.arpnetworking.commons.jackson.databind.ObjectMapperFactory;
 import com.arpnetworking.kairos.client.KairosDbClient;
 import com.arpnetworking.metrics.MetricsFactory;
@@ -35,6 +38,8 @@ import com.arpnetworking.metrics.portal.health.HealthProvider;
 import com.arpnetworking.metrics.portal.hosts.HostRepository;
 import com.arpnetworking.metrics.portal.hosts.impl.HostProviderFactory;
 import com.arpnetworking.metrics.portal.organizations.OrganizationProvider;
+import com.arpnetworking.metrics.portal.scheduling.JobExecutorActor;
+import com.arpnetworking.metrics.portal.scheduling.JobMessageExtractor;
 import com.arpnetworking.play.configuration.ConfigurationHelper;
 import com.arpnetworking.utility.ConfigTypedProvider;
 import com.datastax.driver.core.CodecRegistry;
@@ -59,7 +64,9 @@ import play.inject.ApplicationLifecycle;
 import play.libs.Json;
 
 import java.net.URI;
+import java.time.Clock;
 import java.util.Collections;
+import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import javax.inject.Inject;
 import javax.inject.Named;
@@ -170,6 +177,28 @@ public class MainModule extends AbstractModule {
         });
 
         return objectMapper;
+    }
+
+    @Provides
+    @Singleton
+    @Named("job-execution-shard-region")
+    @SuppressFBWarnings("UPM_UNCALLED_PRIVATE_METHOD") // Invoked reflectively by Guice
+    private ActorRef provideJobExecutorShardRegion(
+            final ActorSystem system,
+            final Injector injector,
+            final JobMessageExtractor extractor,
+            final Clock clock) {
+        final ClusterSharding clusterSharding = ClusterSharding.get(system);
+        return clusterSharding.start(
+                "JobExecutor",
+                JobExecutorActor.props(injector, clock),
+                ClusterShardingSettings.create(system).withRememberEntities(true),
+                extractor,
+                new ParallelLeastShardAllocationStrategy(
+                        100,
+                        3,
+                        Optional.empty()),
+                PoisonPill.getInstance());
     }
 
 

@@ -19,6 +19,7 @@ import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
 import akka.actor.Props;
 import akka.testkit.TestActorRef;
+import com.arpnetworking.commons.akka.GuiceActorCreator;
 import com.arpnetworking.commons.java.time.ManualClock;
 import com.arpnetworking.metrics.MetricsFactory;
 import com.arpnetworking.metrics.impl.TsdMetricsFactory;
@@ -37,6 +38,7 @@ import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.MockitoAnnotations;
 
+import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.ZoneId;
@@ -87,15 +89,16 @@ public final class JobExecutorActorTest {
     public void setUp() {
         MockitoAnnotations.initMocks(this);
 
+        clock = new ManualClock(t0, tickSize, ZoneId.systemDefault());
+
         injector = Guice.createInjector(new AbstractModule() {
             @Override
             protected void configure() {
                 bind(MockableJobRepository.class).toInstance(repo);
                 bind(MetricsFactory.class).toInstance(TsdMetricsFactory.newInstance("test", "test"));
+                bind(Clock.class).toInstance(clock);
             }
         });
-
-        clock = new ManualClock(t0, tickSize, ZoneId.systemDefault());
 
         system = ActorSystem.create(
                 "test-"+systemNameNonce.getAndIncrement(),
@@ -127,25 +130,29 @@ public final class JobExecutorActorTest {
         return result;
     }
 
-    private Props makeExecutorActorProps(final Job<UUID> job) {
+    private Props makeExecutorActorProps() {
+        return JobExecutorActor.props(injector, clock);
+    }
+
+    private ActorRef makeExecutorActor() {
+        return system.actorOf(makeExecutorActorProps());
+    }
+
+    private ActorRef makeAndInitializeExecutorActor(final Job<UUID> job) {
         final JobRef<UUID> ref = new JobRef.Builder<UUID>()
                 .setRepositoryType(MockableJobRepository.class)
                 .setId(job.getId())
                 .setOrganization(organization)
                 .build();
-        return JobExecutorActor.props(injector, ref, clock);
-    }
-
-    private ActorRef makeExecutorActor(final Job<UUID> job) {
-        return system.actorOf(makeExecutorActorProps(job));
+        final ActorRef result = makeExecutorActor();
+        result.tell(new JobExecutorActor.Initialize.Builder<UUID>().setJobRef(ref).build(), null);
+        return result;
     }
 
     @Test
     public void testJobSuccess() {
         final Job<UUID> j = makeSuccessfulJob();
-        final ActorRef scheduler = makeExecutorActor(j);
-
-        scheduler.tell(JobExecutorActor.Tick.INSTANCE, null);
+        makeAndInitializeExecutorActor(j);
 
         Mockito.verify(repo, Mockito.timeout(1000)).jobSucceeded(
                 j.getId(),
@@ -157,10 +164,8 @@ public final class JobExecutorActorTest {
     @Test
     public void testJobFailure() {
         final FailingJob j = makeFailingJob();
+        makeAndInitializeExecutorActor(j);
 
-        final ActorRef scheduler = makeExecutorActor(j);
-
-        scheduler.tell(JobExecutorActor.Tick.INSTANCE, null);
         Mockito.verify(repo, Mockito.timeout(1000)).jobFailed(
                 j.getId(),
                 organization,
@@ -171,10 +176,8 @@ public final class JobExecutorActorTest {
     @Test
     public void testJobInFutureNotRun() {
         final Job<UUID> j = makeSuccessfulJob(t0.plus(Duration.ofMinutes(1)));
+        makeAndInitializeExecutorActor(j);
 
-        final ActorRef scheduler = makeExecutorActor(j);
-
-        scheduler.tell(JobExecutorActor.Tick.INSTANCE, null);
         Mockito.verify(repo, Mockito.after(1000).never()).jobStarted(Mockito.any(), Mockito.any(), Mockito.any());
         Mockito.verify(repo, Mockito.never()).jobSucceeded(Mockito.any(), Mockito.any(), Mockito.any(), Mockito.any());
         Mockito.verify(repo, Mockito.never()).jobFailed(Mockito.any(), Mockito.any(), Mockito.any(), Mockito.any());
@@ -182,7 +185,7 @@ public final class JobExecutorActorTest {
 
     @Test
     public void testExtraTicks() {
-        final TestActorRef<JobExecutorActor<UUID>> testActor = TestActorRef.create(system, makeExecutorActorProps(makeSuccessfulJob()));
+        final TestActorRef<JobExecutorActor<UUID>> testActor = TestActorRef.create(system, makeExecutorActorProps());
         final JobExecutorActor<UUID> scheduler = testActor.underlyingActor();
         Duration jTickInterval = Duration.ofNanos(JobExecutorActor.TICK_INTERVAL.toNanos());
         assertEquals(

@@ -21,8 +21,10 @@ import akka.actor.Props;
 import com.arpnetworking.steno.Logger;
 import com.arpnetworking.steno.LoggerFactory;
 import com.google.inject.Injector;
+import com.google.inject.Key;
+import com.google.inject.name.Names;
 import models.internal.Organization;
-import scala.Option;
+import models.internal.scheduling.Job;
 
 import java.time.Clock;
 import java.time.Duration;
@@ -94,37 +96,38 @@ public final class JobCoordinator<T> extends AbstractActorWithTimers {
         timers().startSingleTimer("TICK", AntiEntropyTick.INSTANCE, scala.concurrent.duration.Duration.fromNanos(nanosUntilTick));
     }
 
+    private void conditionallyReloadExecutor(final ActorRef executorRegion, final Job<T> job) {
+        final JobRef<T> ref = new JobRef.Builder<T>()
+                .setRepositoryType(_repositoryType)
+                .setOrganization(_organization)
+                .setId(job.getId())
+                .build();
+        executorRegion.tell(
+                new JobExecutorActor.Envelope.Builder<T>()
+                        .setJobRef(ref)
+                        .setMessage(new JobExecutorActor.ConditionalReload.Builder().setETag(job.getETag()).build())
+                        .build(),
+                getSelf());
+    }
+
     @Override
     public Receive createReceive() {
         return receiveBuilder()
                 .match(AntiEntropyTick.class, message -> {
                     final Instant startTime = _clock.instant();
+
                     final JobRepository<T> repo = _injector.getInstance(_repositoryType);
-                    repo.getAllJobs(_organization).forEach(job -> {
-                        final String actorId = "JobExecutorActor:" + job.getId();
-                        final Option<ActorRef> ch = getContext().child(actorId);
-                        if (ch.isDefined()) {
-                            ch.get().tell(
-                                    new JobExecutorActor.Reload.Builder()
-                                            .setETag(job.getETag())
-                                            .build(),
-                                    getSelf());
-                        } else {
-                            final JobRef<T> ref = new JobRef.Builder<T>()
-                                    .setRepositoryType(_repositoryType)
-                                    .setOrganization(_organization)
-                                    .setId(job.getId())
-                                    .build();
-                            LOGGER.info()
-                                    .setMessage("no scheduler exists for job")
-                                    .addData("ref", ref)
-                                    .log();
-                            getContext().actorOf(JobExecutorActor.props(_injector, ref));
-                        }
-                    });
+                    final ActorRef executorRegion = _injector.getInstance(Key.get(
+                            ActorRef.class,
+                            Names.named("job-execution-shard-region")));
+                    repo.getAllJobs(_organization).forEach(job -> this.conditionallyReloadExecutor(executorRegion, job));
+
+                    // TODO(spencerpearson): also ensure that every executor corresponds to a job in the repo.
+
                     final Instant now = _clock.instant();
                     final Instant nextTickTime = startTime.plus(ANTI_ENTROPY_TICK_INTERVAL);
                     scheduleNextAntiEntropyTick(now.isBefore(nextTickTime) ? ChronoUnit.NANOS.between(now, nextTickTime) : 0);
+
                 })
                 .build();
     }
