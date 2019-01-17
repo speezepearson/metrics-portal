@@ -23,6 +23,8 @@ import com.arpnetworking.commons.akka.GuiceActorCreator;
 import com.arpnetworking.commons.java.time.ManualClock;
 import com.arpnetworking.metrics.MetricsFactory;
 import com.arpnetworking.metrics.impl.TsdMetricsFactory;
+import com.arpnetworking.metrics.incubator.PeriodicMetrics;
+import com.arpnetworking.metrics.incubator.impl.TsdPeriodicMetrics;
 import com.arpnetworking.metrics.portal.AkkaClusteringConfigFactory;
 import com.arpnetworking.metrics.portal.scheduling.impl.OneOffSchedule;
 import com.google.inject.AbstractModule;
@@ -81,6 +83,7 @@ public final class JobExecutorActorTest {
     @Mock
     private MockableJobRepository repo;
     private ManualClock clock;
+    private PeriodicMetrics periodicMetrics;
     private ActorSystem system;
 
     private static final AtomicLong systemNameNonce = new AtomicLong(0);
@@ -95,10 +98,13 @@ public final class JobExecutorActorTest {
             @Override
             protected void configure() {
                 bind(MockableJobRepository.class).toInstance(repo);
-                bind(MetricsFactory.class).toInstance(TsdMetricsFactory.newInstance("test", "test"));
                 bind(Clock.class).toInstance(clock);
             }
         });
+
+        periodicMetrics = new TsdPeriodicMetrics.Builder()
+                .setMetricsFactory(TsdMetricsFactory.newInstance("test", "test"))
+                .build();
 
         system = ActorSystem.create(
                 "test-"+systemNameNonce.getAndIncrement(),
@@ -131,7 +137,7 @@ public final class JobExecutorActorTest {
     }
 
     private Props makeExecutorActorProps() {
-        return JobExecutorActor.props(injector, clock);
+        return JobExecutorActor.props(injector, clock, periodicMetrics);
     }
 
     private ActorRef makeExecutorActor() {
