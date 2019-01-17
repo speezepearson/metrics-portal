@@ -40,12 +40,14 @@ import org.mockito.MockitoAnnotations;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.ZoneId;
+import java.util.ArrayList;
 import java.util.NoSuchElementException;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.stream.Stream;
 
 import static org.junit.Assert.assertEquals;
 
@@ -57,14 +59,15 @@ import static org.junit.Assert.assertEquals;
 public final class JobExecutorActorTest {
 
     private static class MockableJobRepository implements JobRepository<UUID> {
-         @Override public void open() {}
-         @Override public void close() {}
-         @Override public void addOrUpdateJob(final Job<UUID> job, final Organization organization) {}
-         @Override public Optional<Job<UUID>> getJob(final UUID id, final Organization organization) { return Optional.empty(); }
-         @Override public Optional<Instant> getLastRun(final UUID id, final Organization organization) throws NoSuchElementException { return Optional.empty(); }
-         @Override public void jobStarted(final UUID id, final Organization organization, final Instant scheduled) {}
-         @Override public void jobSucceeded(final UUID id, final Organization organization, final Instant scheduled, final UUID result) {}
-         @Override public void jobFailed(final UUID id, final Organization organization, final Instant scheduled, final Throwable error) {}
+        @Override public void open() {}
+        @Override public void close() {}
+        @Override public void addOrUpdateJob(final Job<UUID> job, final Organization organization) {}
+        @Override public Optional<Job<UUID>> getJob(final UUID id, final Organization organization) { return Optional.empty(); }
+        @Override public Optional<Instant> getLastRun(final UUID id, final Organization organization) throws NoSuchElementException { return Optional.empty(); }
+        @Override public Stream<Job<UUID>> getAllJobs(Organization organization) { return new ArrayList<Job<UUID>>().stream(); }
+        @Override public void jobStarted(final UUID id, final Organization organization, final Instant scheduled) {}
+        @Override public void jobSucceeded(final UUID id, final Organization organization, final Instant scheduled, final UUID result) {}
+        @Override public void jobFailed(final UUID id, final Organization organization, final Instant scheduled, final Throwable error) {}
     }
 
 
@@ -207,6 +210,11 @@ public final class JobExecutorActorTest {
         @Override
         public UUID getId() {
             return _uuid;
+        }
+
+        @Override
+        public String getETag() {
+            return _uuid.toString();
         }
 
         @Override
