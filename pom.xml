@@ -984,11 +984,11 @@
       <scope>runtime</scope>
     </dependency>-->
     <!-- Is this needed? -->
-    <!--<dependency>
+    <dependency>
       <groupId>com.github.kklisura.cdt</groupId>
       <artifactId>cdt-java-client</artifactId>
       <version>${cdt.java.client.version}</version>
-    </dependency>-->
+    </dependency>
     <!-- Is this needed? -->
     <!--<dependency>
       <groupId>org.simplejavamail</groupId>

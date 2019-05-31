@@ -17,6 +17,7 @@
 package models.internal.reports;
 
 import com.arpnetworking.metrics.portal.reports.SourceType;
+import models.internal.impl.GrafanaReportPanelReportSource;
 import models.internal.impl.WebPageReportSource;
 
 import java.util.UUID;
@@ -64,5 +65,13 @@ public interface ReportSource {
          * @return The result of applying the visitor.
          */
         public abstract T visitWeb(WebPageReportSource source);
+
+        /**
+         * Visit a {@link WebPageReportSource}.
+         *
+         * @param source The source to visit.
+         * @return The result of applying the visitor.
+         */
+        public abstract T visitGrafana(GrafanaReportPanelReportSource source);
     }
 }

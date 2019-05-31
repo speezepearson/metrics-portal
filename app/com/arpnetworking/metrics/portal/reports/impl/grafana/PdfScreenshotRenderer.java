@@ -14,41 +14,52 @@
  * limitations under the License.
  */
 
-package com.arpnetworking.metrics.portal.reports.impl.chrome;
+package com.arpnetworking.metrics.portal.reports.impl.grafana;
 
 import com.arpnetworking.metrics.portal.reports.RenderedReport;
 import com.arpnetworking.metrics.portal.reports.Renderer;
+import com.arpnetworking.metrics.portal.reports.impl.chrome.DevToolsFactory;
+import com.arpnetworking.metrics.portal.reports.impl.chrome.DevToolsService;
 import com.google.inject.Inject;
 import models.internal.impl.DefaultRenderedReport;
+import models.internal.impl.GrafanaReportPanelReportSource;
 import models.internal.impl.PdfReportFormat;
-import models.internal.impl.WebPageReportSource;
 
 import java.time.Instant;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 
 /**
- * Uses a headless Chrome instance to render a page as PDF.
+ * Uses a headless Chrome instance to render a Grafana report panel as PDF.
  *
  * @author Spencer Pearson (spencerpearson at dropbox dot com)
  */
-public final class PdfScreenshotRenderer implements Renderer<WebPageReportSource, PdfReportFormat> {
+public final class PdfScreenshotRenderer implements Renderer<GrafanaReportPanelReportSource, PdfReportFormat> {
     @Override
     public CompletionStage<RenderedReport> render(
-            final WebPageReportSource source,
+            final GrafanaReportPanelReportSource source,
             final PdfReportFormat format,
             final Instant scheduled
     ) {
         final DevToolsService dts = _devToolsFactory.create();
         final CompletableFuture<RenderedReport> result = new CompletableFuture<>();
-        dts.onLoad(() -> result.complete(new DefaultRenderedReport.Builder()
+        dts.onEvent("pagereplacedbyreport", () -> {
+            result.complete(new DefaultRenderedReport.Builder()
                     .setFormat(format)
                     .setScheduledFor(scheduled)
                     .setGeneratedAt(Instant.now())
                     .setBytes(dts.printToPdf(format.getWidthInches(), format.getHeightInches()))
                     .build()
-        ));
-        dts.navigate(source.getUri().toString());
+            );
+        });
+        dts.onEvent("reportrendered", () -> {
+            dts.evaluate(""
+                + "var body = document.getElementsByClassName('rendered-markdown-container')[0].srcdoc;\n"
+                + "document.open(); document.write(body); document.close();\n"
+                + "window.dispatch(new Event('pagereplacedbyreport'));\n"
+            );
+        });
+        dts.navigate(source.getWebPageReportSource().getUri().toString());
         return result;
     }
 
