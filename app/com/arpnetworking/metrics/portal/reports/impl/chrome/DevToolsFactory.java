@@ -18,6 +18,7 @@ package com.arpnetworking.metrics.portal.reports.impl.chrome;
 import com.github.kklisura.cdt.services.ChromeService;
 import com.github.kklisura.cdt.services.types.ChromeTab;
 import com.google.inject.Inject;
+import com.google.inject.Provider;
 
 /**
  * TODO(spencerpearson).
@@ -32,8 +33,8 @@ public final class DevToolsFactory {
      * @return TODO(spencerpearson).
      */
     public DevToolsServiceWrapper create() {
-        final ChromeTab tab = _chromeService.createTab();
-        final com.github.kklisura.cdt.services.ChromeDevToolsService result = _chromeService.createDevToolsService(tab);
+        final ChromeTab tab = _chromeServiceProvider.get().createTab();
+        final com.github.kklisura.cdt.services.ChromeDevToolsService result = _chromeServiceProvider.get().createDevToolsService(tab);
         if (_ignoreCertificateErrors) {
             result.getSecurity().setIgnoreCertificateErrors(true);
         }
@@ -42,15 +43,15 @@ public final class DevToolsFactory {
 
     /**
      * TODO(spencerpearson).
-     * @param chromeService TODO(spencerpearson).
+     * @param chromeServiceProvider TODO(spencerpearson).
      * @param ignoreCertificateErrors TODO(spencerpearson).
      */
     @Inject
-    public DevToolsFactory(final ChromeService chromeService, final boolean ignoreCertificateErrors) {
-        _chromeService = chromeService;
+    public DevToolsFactory(final Provider<ChromeService> chromeServiceProvider, final boolean ignoreCertificateErrors) {
+        _chromeServiceProvider = chromeServiceProvider;
         _ignoreCertificateErrors = ignoreCertificateErrors;
     }
 
-    private final ChromeService _chromeService;
+    private final Provider<ChromeService>  _chromeServiceProvider;
     private final boolean _ignoreCertificateErrors;
 }
