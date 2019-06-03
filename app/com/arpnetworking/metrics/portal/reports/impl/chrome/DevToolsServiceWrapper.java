@@ -21,7 +21,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 import java.util.Base64;
 import java.util.UUID;
-import java.util.function.Consumer;
 
 /**
  * Wraps a <code>com.github.kklisura.cdt.services.DevToolsService</code> to conform to the {@link DevToolsService} interface.

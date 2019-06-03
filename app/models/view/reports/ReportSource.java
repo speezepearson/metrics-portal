@@ -18,6 +18,7 @@ package models.view.reports;
 
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
+import models.view.impl.GrafanaReportPanelReportSource;
 import models.view.impl.WebPageReportSource;
 
 /**
@@ -31,6 +32,7 @@ import models.view.impl.WebPageReportSource;
         property = "type")
 @JsonSubTypes({
         @JsonSubTypes.Type(value = WebPageReportSource.class, name = "WEB_PAGE"),
+        @JsonSubTypes.Type(value = GrafanaReportPanelReportSource.class, name = "GRAFANA"),
 })
 public interface ReportSource {
     /**

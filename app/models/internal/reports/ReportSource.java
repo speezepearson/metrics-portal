@@ -67,7 +67,7 @@ public interface ReportSource {
         public abstract T visitWeb(WebPageReportSource source);
 
         /**
-         * Visit a {@link WebPageReportSource}.
+         * Visit a {@link GrafanaReportPanelReportSource}.
          *
          * @param source The source to visit.
          * @return The result of applying the visitor.
