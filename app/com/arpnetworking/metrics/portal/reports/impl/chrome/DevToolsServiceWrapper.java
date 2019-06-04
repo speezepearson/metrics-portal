@@ -25,7 +25,7 @@ import java.util.UUID;
 /**
  * Wraps a <code>com.github.kklisura.cdt.services.DevToolsService</code> to conform to the {@link DevToolsService} interface.
  *
- * @author Spencer Pearson
+ * @author Spencer Pearson (spencerpearson at dropbox dot com)
  */
 public class DevToolsServiceWrapper implements DevToolsService {
     private final com.github.kklisura.cdt.services.ChromeDevToolsService _dts;

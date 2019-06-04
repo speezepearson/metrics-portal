@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Dropbox, Inc.
+ * Copyright 2019 Dropbox, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,7 +18,7 @@ package com.arpnetworking.metrics.portal.reports.impl.chrome;
 /**
  * A relatively minimal interface for a Chrome tab's dev tools.
  *
- * @author Spencer Pearson
+ * @author Spencer Pearson (spencerpearson at dropbox dot com)
  */
 public interface DevToolsService {
     /**

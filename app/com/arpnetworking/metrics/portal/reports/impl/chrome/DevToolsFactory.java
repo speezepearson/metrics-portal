@@ -25,7 +25,7 @@ import javax.inject.Named;
 /**
  * A factory that sits atop a Chrome instance and creates tabs / dev-tools instances.
  *
- * @author Spencer Pearson
+ * @author Spencer Pearson (spencerpearson at dropbox dot com)
  */
 public final class DevToolsFactory {
 
