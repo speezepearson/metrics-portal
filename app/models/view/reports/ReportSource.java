@@ -42,6 +42,19 @@ public interface ReportSource {
      */
     models.internal.reports.ReportSource toInternal();
 
+    models.internal.reports.ReportSource.Visitor<ReportSource> FROM_INTERNAL_VISITOR =
+            new models.internal.reports.ReportSource.Visitor<ReportSource>() {
+                @Override
+                public ReportSource visitWeb(final models.internal.impl.WebPageReportSource source) {
+                    return WebPageReportSource.fromInternal(source);
+                }
+
+                @Override
+                public ReportSource visitGrafana(final models.internal.impl.GrafanaReportPanelReportSource source) {
+                    return GrafanaReportPanelReportSource.fromInternal(source)
+                }
+            };
+
     /**
      * Convert from an internal model {@link models.internal.reports.ReportSource}.
      *
@@ -50,11 +63,7 @@ public interface ReportSource {
      * @throws IllegalArgumentException if the internal model cannot be represented in the view.
      */
     static ReportSource fromInternal(final models.internal.reports.ReportSource source) {
-        if (source instanceof models.internal.impl.WebPageReportSource) {
-            return WebPageReportSource.fromInternal((models.internal.impl.WebPageReportSource) source);
-        } else {
-            throw new IllegalArgumentException("Cannot convert class " + source.getClass() + " to a view model.");
-        }
+        return source.accept(FROM_INTERNAL_VISITOR);
     }
 }
 
