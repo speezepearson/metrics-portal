@@ -18,7 +18,9 @@ package com.arpnetworking.metrics.portal.reports.impl.chrome;
 import com.github.kklisura.cdt.services.ChromeService;
 import com.github.kklisura.cdt.services.types.ChromeTab;
 import com.google.inject.Inject;
-import com.google.inject.Provider;
+
+import java.util.function.Supplier;
+import javax.inject.Named;
 
 /**
  * A factory that sits atop a Chrome instance and creates tabs / dev-tools instances.
@@ -34,8 +36,8 @@ public final class DevToolsFactory {
      * @return the created service.
      */
     public DevToolsService create(final boolean ignoreCertificateErrors) {
-        final ChromeTab tab = _chromeServiceProvider.get().createTab();
-        final com.github.kklisura.cdt.services.ChromeDevToolsService result = _chromeServiceProvider.get().createDevToolsService(tab);
+        final ChromeTab tab = _chromeServiceSupplier.get().createTab();
+        final com.github.kklisura.cdt.services.ChromeDevToolsService result = _chromeServiceSupplier.get().createDevToolsService(tab);
         if (ignoreCertificateErrors) {
             result.getSecurity().setIgnoreCertificateErrors(true);
         }
@@ -45,13 +47,13 @@ public final class DevToolsFactory {
     /**
      * Public constructor.
      *
-     * @param chromeServiceProvider provides the Chrome instance that tabs are created for rendering on.
-     *   Using {@link Provider} enables lazy instantiation, so nodes don't eagerly instantiate {@link ChromeService}.
+     * @param chromeServiceSupplier provides the Chrome instance that tabs are created for rendering on.
+     *   Using {@link Supplier} enables lazy instantiation, so nodes don't eagerly instantiate {@link ChromeService}.
      */
     @Inject
-    public DevToolsFactory(final Provider<ChromeService> chromeServiceProvider) {
-        _chromeServiceProvider = chromeServiceProvider;
+    public DevToolsFactory(@Named("chrome-service") final Supplier<ChromeService> chromeServiceSupplier) {
+        _chromeServiceSupplier = chromeServiceSupplier;
     }
 
-    private final Provider<ChromeService>  _chromeServiceProvider;
+    private final Supplier<ChromeService>  _chromeServiceSupplier;
 }

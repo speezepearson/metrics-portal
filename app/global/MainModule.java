@@ -47,7 +47,6 @@ import com.arpnetworking.metrics.portal.hosts.impl.HostProviderFactory;
 import com.arpnetworking.metrics.portal.organizations.OrganizationRepository;
 import com.arpnetworking.metrics.portal.reports.ReportExecutionContext;
 import com.arpnetworking.metrics.portal.reports.ReportRepository;
-import com.arpnetworking.metrics.portal.reports.impl.chrome.DevToolsFactory;
 import com.arpnetworking.metrics.portal.scheduling.JobCoordinator;
 import com.arpnetworking.metrics.portal.scheduling.JobExecutorActor;
 import com.arpnetworking.metrics.portal.scheduling.JobMessageExtractor;
@@ -61,6 +60,7 @@ import com.datastax.driver.extras.codecs.jdk8.InstantCodec;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.kklisura.cdt.launch.ChromeLauncher;
 import com.github.kklisura.cdt.services.ChromeService;
+import com.google.common.base.Suppliers;
 import com.google.inject.AbstractModule;
 import com.google.inject.Injector;
 import com.google.inject.Provider;
@@ -90,6 +90,7 @@ import java.util.Collections;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Supplier;
 import javax.inject.Inject;
 import javax.inject.Named;
 import javax.inject.Singleton;
@@ -180,10 +181,10 @@ public class MainModule extends AbstractModule {
 
     @Provides
     @Singleton
-    @SuppressFBWarnings(value = "UPM_UNCALLED_PRIVATE_METHOD", justification = "Invoked reflectively by Guice")
-    private ChromeService getChromeService() {
-        System.out.println("[SRP] getChromeService");
-        return new ChromeLauncher().launch(true);
+    @Named("chrome-service") // TODO(spencerpearson): is this necessary? Does Guice play nice with generics?
+    @SuppressFBWarnings("UPM_UNCALLED_PRIVATE_METHOD") // Invoked reflectively by Guice
+    private Supplier<ChromeService> getChromeService() {
+        return Suppliers.memoize(() -> new ChromeLauncher().launch(true));
     }
 
     @Provides
