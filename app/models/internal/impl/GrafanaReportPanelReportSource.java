@@ -101,10 +101,10 @@ public final class GrafanaReportPanelReportSource implements ReportSource {
         }
 
         /**
-         * TODO(spencerpearson).
+         * The {@link WebPageReportSource} representing the underlying page to be loaded. Required. Cannot be null.
          *
-         * @param webPageReportSource TODO(spencerpearson).
-         * @return This instance of {@code Builder}
+         * @param webPageReportSource The underlying web page report source.
+         * @return This instance of {@code Builder}.
          */
         public Builder setWebPageReportSource(final WebPageReportSource webPageReportSource) {
             _webPageReportSource = webPageReportSource;

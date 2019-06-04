@@ -21,37 +21,37 @@ import com.google.inject.Inject;
 import com.google.inject.Provider;
 
 /**
- * TODO(spencerpearson).
+ * A factory that sits atop a Chrome instance and creates tabs / dev-tools instances.
  *
  * @author Spencer Pearson
  */
 public final class DevToolsFactory {
 
     /**
-     * TODO(spencerpearson).
+     * Create a {@link DevToolsService}.
      *
-     * @return TODO(spencerpearson).
+     * @param ignoreCertificateErrors whether the created tab should ignore certificate errors when loading resources.
+     * @return the created service.
      */
-    public DevToolsServiceWrapper create() {
+    public DevToolsService create(final boolean ignoreCertificateErrors) {
         final ChromeTab tab = _chromeServiceProvider.get().createTab();
         final com.github.kklisura.cdt.services.ChromeDevToolsService result = _chromeServiceProvider.get().createDevToolsService(tab);
-        if (_ignoreCertificateErrors) {
+        if (ignoreCertificateErrors) {
             result.getSecurity().setIgnoreCertificateErrors(true);
         }
         return new DevToolsServiceWrapper(result);
     }
 
     /**
-     * TODO(spencerpearson).
-     * @param chromeServiceProvider TODO(spencerpearson).
-     * @param ignoreCertificateErrors TODO(spencerpearson).
+     * Public constructor.
+     *
+     * @param chromeServiceProvider provides the Chrome instance that tabs are created for rendering on.
+     *   Using {@link Provider} enables lazy instantiation, so nodes don't eagerly instantiate {@link ChromeService}.
      */
     @Inject
-    public DevToolsFactory(final Provider<ChromeService> chromeServiceProvider, final boolean ignoreCertificateErrors) {
+    public DevToolsFactory(final Provider<ChromeService> chromeServiceProvider) {
         _chromeServiceProvider = chromeServiceProvider;
-        _ignoreCertificateErrors = ignoreCertificateErrors;
     }
 
     private final Provider<ChromeService>  _chromeServiceProvider;
-    private final boolean _ignoreCertificateErrors;
 }

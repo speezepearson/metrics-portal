@@ -40,7 +40,7 @@ public final class HtmlScreenshotRenderer implements Renderer<WebPageReportSourc
             final HtmlReportFormat format,
             final Instant scheduled
     ) {
-        final DevToolsService dts = _devToolsFactory.create();
+        final DevToolsService dts = _devToolsFactory.create(source.ignoresCertificateErrors());
         final CompletableFuture<RenderedReport> result = new CompletableFuture<>();
         dts.onLoad(() -> {
             final String srcdoc = (String) dts.evaluate("document.documentElement.outerHTML");
@@ -57,8 +57,9 @@ public final class HtmlScreenshotRenderer implements Renderer<WebPageReportSourc
     }
 
     /**
-     * TODO(spencerpearson).
-     * @param devToolsFactory TODO(spencerpearson).
+     * Public constructor.
+     *
+     * @param devToolsFactory the {@link DevToolsFactory} to use to create tabs.
      */
     @Inject
     protected HtmlScreenshotRenderer(final DevToolsFactory devToolsFactory) {
