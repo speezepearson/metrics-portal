@@ -24,7 +24,7 @@ public interface DevToolsService {
     /**
      * Evaluates some JavaScript in the tab.
      *
-     * @param js A JavaScript expression. (If you need multiple statements, wrap them in `(() => {...})()`.)
+     * @param js A JavaScript expression. (If you need multiple statements, wrap them in an IIFE.)
      * @return The result of the evaluation. (e.g. a String, a Double, a-- I don't know about arrays/objects.)
      */
     Object evaluate(String js);
@@ -32,8 +32,8 @@ public interface DevToolsService {
     /**
      * Creates a PDF capturing how the page currently displays.
      *
-     * @param pageWidth duh
-     * @param pageHeight duh
+     * @param pageWidth How wide the PDF's pages should be, in inches.
+     * @param pageHeight How tall the PDF's pages should be, in inches.
      * @return Raw bytes of the PDF, suitable for e.g. writing to a .pdf file.
      */
     byte[] printToPdf(double pageWidth, double pageHeight);
@@ -41,14 +41,14 @@ public interface DevToolsService {
     /**
      * Forces the tab to navigate to a new URL.
      *
-     * @param url duh
+     * @param url The URL to navigate to.
      */
     void navigate(String url);
 
     /**
      * Registers a callback to get registered whenever a page loads.
      *
-     * @param callback duh
+     * @param callback The function to invoke.
      */
     void onLoad(Runnable callback);
 
