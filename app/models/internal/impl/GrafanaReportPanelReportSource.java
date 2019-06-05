@@ -29,7 +29,8 @@ import java.util.UUID;
 /**
  * Internal model for a report source that pulls content from a Grafana report panel.
  *
- * The URI for the underlying
+ * The URI for this source should point to an individual Grafana report panel,
+ * e.g. {@code https://play.grafana.org/d/000000012/grafana-play-home?orgId=1&fullscreen&panelId=3} .
  *
  * @author Spencer Pearson (spencerpearson at dropbox dot com)
  */
@@ -54,9 +55,9 @@ public final class GrafanaReportPanelReportSource implements ReportSource {
     }
 
     /**
-     * Get the URI for this report source.
+     * Get the underlying {@link WebPageReportSource} which describes the Grafana-panel webpage to load.
      *
-     * @return the URI for this report source.
+     * @return the URI to load.
      */
     public WebPageReportSource getWebPageReportSource() {
         return _webPageReportSource;
