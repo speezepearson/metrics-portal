@@ -55,5 +55,5 @@ public final class DevToolsFactory {
         _chromeServiceSupplier = chromeServiceSupplier;
     }
 
-    private final Supplier<ChromeService>  _chromeServiceSupplier;
+    private final Supplier<ChromeService> _chromeServiceSupplier;
 }
