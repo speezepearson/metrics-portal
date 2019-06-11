@@ -20,11 +20,11 @@ import com.arpnetworking.commons.builder.OvalBuilder;
 import com.arpnetworking.logback.annotations.Loggable;
 import com.arpnetworking.metrics.portal.reports.RenderedReport;
 import com.google.common.base.MoreObjects;
+import com.google.common.io.ByteSource;
+import models.internal.reports.Report;
 import models.internal.reports.ReportFormat;
 import net.sf.oval.constraint.NotNull;
 
-import java.io.ByteArrayInputStream;
-import java.io.InputStream;
 import java.time.Instant;
 import java.util.Arrays;
 import java.util.Objects;
@@ -37,8 +37,13 @@ import java.util.Objects;
 @Loggable
 public final class DefaultRenderedReport implements RenderedReport {
     @Override
-    public InputStream getBytes() {
-        return new ByteArrayInputStream(_bytes);
+    public Report getReport() {
+        return _report;
+    }
+
+    @Override
+    public ByteSource getBytes() {
+        return ByteSource.wrap(_bytes);
     }
 
     @Override
@@ -89,12 +94,14 @@ public final class DefaultRenderedReport implements RenderedReport {
     }
 
     private DefaultRenderedReport(final Builder builder) {
+        _report = builder._report;
         _bytes = builder._bytes;
         _scheduledFor = builder._scheduledFor;
         _generatedAt = builder._generatedAt;
         _format = builder._format;
     }
 
+    private final Report _report;
     private final byte[] _bytes;
     private final Instant _scheduledFor;
     private final Instant _generatedAt;
@@ -103,12 +110,25 @@ public final class DefaultRenderedReport implements RenderedReport {
     /**
      * Builder implementation that constructs {@code DefaultReport}.
      */
-    public static final class Builder extends OvalBuilder<DefaultRenderedReport> {
+    public static final class Builder
+            extends OvalBuilder<DefaultRenderedReport>
+            implements RenderedReport.Builder<Builder, DefaultRenderedReport> {
         /**
          * Public Constructor.
          */
         public Builder() {
             super(DefaultRenderedReport::new);
+        }
+
+        /**
+         * Set the report that this object is a rendering of. Required. Cannot be null.
+         *
+         * @param report The report.
+         * @return This instance of {@code Builder}.
+         */
+        public Builder setReport(final Report report) {
+            _report = report;
+            return this;
         }
 
         /**
@@ -155,6 +175,8 @@ public final class DefaultRenderedReport implements RenderedReport {
             return this;
         }
 
+        @NotNull
+        private Report _report;
         @NotNull
         private byte[] _bytes;
         @NotNull

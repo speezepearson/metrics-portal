@@ -21,7 +21,6 @@ import com.arpnetworking.metrics.portal.reports.Renderer;
 import com.arpnetworking.metrics.portal.reports.impl.chrome.DevToolsFactory;
 import com.arpnetworking.metrics.portal.reports.impl.chrome.DevToolsService;
 import com.google.inject.Inject;
-import models.internal.impl.DefaultRenderedReport;
 import models.internal.impl.GrafanaReportPanelReportSource;
 import models.internal.impl.PdfReportFormat;
 
@@ -36,21 +35,16 @@ import java.util.concurrent.CompletionStage;
  */
 public final class PdfScreenshotRenderer implements Renderer<GrafanaReportPanelReportSource, PdfReportFormat> {
     @Override
-    public CompletionStage<RenderedReport> render(
+    public <B extends RenderedReport.Builder<B, ?>> CompletionStage<B> render(
             final GrafanaReportPanelReportSource source,
             final PdfReportFormat format,
-            final Instant scheduled
+            final Instant scheduled,
+            final B builder
     ) {
         final DevToolsService dts = _devToolsFactory.create(source.getWebPageReportSource().ignoresCertificateErrors());
-        final CompletableFuture<RenderedReport> result = new CompletableFuture<>();
+        final CompletableFuture<B> result = new CompletableFuture<>();
         dts.onEvent("pagereplacedbyreport", () -> {
-            result.complete(new DefaultRenderedReport.Builder()
-                    .setFormat(format)
-                    .setScheduledFor(scheduled)
-                    .setGeneratedAt(Instant.now())
-                    .setBytes(dts.printToPdf(format.getWidthInches(), format.getHeightInches()))
-                    .build()
-            );
+            result.complete(builder.setBytes(dts.printToPdf(format.getWidthInches(), format.getHeightInches())));
         });
         dts.onEvent("reportrendered", () -> {
             dts.evaluate(""

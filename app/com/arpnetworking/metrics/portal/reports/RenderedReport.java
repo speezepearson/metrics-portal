@@ -16,9 +16,10 @@
 
 package com.arpnetworking.metrics.portal.reports;
 
+import com.google.common.io.ByteSource;
+import models.internal.reports.Report;
 import models.internal.reports.ReportFormat;
 
-import java.io.InputStream;
 import java.time.Instant;
 
 /**
@@ -27,6 +28,13 @@ import java.time.Instant;
  * @author Spencer Pearson (spencerpearson at dropbox dot com)
  */
 public interface RenderedReport {
+
+    /**
+     * The report that was rendered into this object.
+     *
+     * @return The format.
+     */
+    Report getReport();
 
     /**
      * The format of the report.
@@ -40,7 +48,7 @@ public interface RenderedReport {
      *
      * @return The bytes.
      */
-    InputStream getBytes();
+    ByteSource getBytes();
 
     /**
      * The instant that the report was scheduled for.
@@ -55,4 +63,46 @@ public interface RenderedReport {
      * @return The instant.
      */
     Instant getGeneratedAt();
+
+
+    /**
+     * Interface for Builders that construct {@link RenderedReport}s.
+     *
+     * @param <B> The concrete type of this builder.
+     * @param <R> The type of RenderedReport to build.
+     */
+    interface Builder<B extends Builder<B, R>, R extends RenderedReport> extends com.arpnetworking.commons.builder.Builder<R> {
+
+        /**
+         * Set the report bytes. Required. Cannot be null.
+         *
+         * @param bytes The report bytes.
+         * @return This instance of {@code Builder}.
+         */
+        B setBytes(byte[] bytes);
+
+        /**
+         * Set the report bytes. Required. Cannot be null.
+         *
+         * @param scheduledFor The report scheduledFor.
+         * @return This instance of {@code Builder}.
+         */
+        B setScheduledFor(Instant scheduledFor);
+
+        /**
+         * Set the report generatedAt. Required. Cannot be null.
+         *
+         * @param generatedAt The report generatedAt.
+         * @return This instance of {@code Builder}.
+         */
+        B setGeneratedAt(Instant generatedAt);
+
+        /**
+         * Set the report format. Required. Cannot be null.
+         *
+         * @param format The report format.
+         * @return This instance of {@code Builder}.
+         */
+        B setFormat(ReportFormat format);
+    }
 }

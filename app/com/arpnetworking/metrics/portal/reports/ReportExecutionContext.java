@@ -27,6 +27,7 @@ import com.google.inject.Inject;
 import com.google.inject.Injector;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigObject;
+import models.internal.impl.DefaultRenderedReport;
 import models.internal.impl.DefaultReportResult;
 import models.internal.reports.Recipient;
 import models.internal.reports.Report;
@@ -34,6 +35,7 @@ import models.internal.reports.ReportFormat;
 import models.internal.reports.ReportSource;
 import play.Environment;
 
+import java.time.Clock;
 import java.time.Instant;
 import java.util.Collection;
 import java.util.Map;
@@ -68,13 +70,13 @@ public final class ReportExecutionContext {
                         e -> e.getValue().stream()));
         final ImmutableMultimap<Recipient, ReportFormat> recipientToFormats = formatToRecipients.inverse();
 
-        return CompletableFuture.completedFuture(null).thenApply(nothing -> {
+        return CompletableFuture.supplyAsync(() -> {
             verifyDependencies(report);
             return null;
         }).thenCompose(nothing ->
-                renderAll(formatToRecipients.keySet(), report.getSource(), scheduled)
+                renderAll(formatToRecipients.keySet(), report, scheduled)
         ).thenCompose(formatToRendered ->
-                sendAll(recipientToFormats, formatToRendered)
+                sendAll(report, recipientToFormats, formatToRendered, scheduled)
         ).thenApply(nothing ->
                 new DefaultReportResult()
         );
@@ -105,15 +107,20 @@ public final class ReportExecutionContext {
      */
     /* package private */ CompletionStage<ImmutableMap<ReportFormat, RenderedReport>> renderAll(
             final ImmutableSet<ReportFormat> formats,
-            final ReportSource source,
+            final Report report,
             final Instant scheduled
     ) {
         final Map<ReportFormat, RenderedReport> result = Maps.newConcurrentMap();
         final CompletableFuture<?>[] resultSettingFutures = formats
                 .stream()
-                .map(format -> getRenderer(source, format)
-                        .render(source, format, scheduled)
-                        .thenApply(rendered -> result.put(format, rendered))
+                .map(format ->
+                        getRenderer(report.getSource(), format)
+                        .render(report.getSource(), format, scheduled, new DefaultRenderedReport.Builder()
+                                .setReport(report)
+                                .setFormat(format)
+                                .setGeneratedAt(_clock.instant())
+                                .setScheduledFor(scheduled))
+                        .thenApply(builder -> result.put(format, builder.build()))
                         .toCompletableFuture())
                 .toArray(CompletableFuture[]::new);
         return CompletableFuture.allOf(resultSettingFutures).thenApply(nothing -> ImmutableMap.copyOf(result));
@@ -129,8 +136,10 @@ public final class ReportExecutionContext {
      * @throws IllegalArgumentException if any necessary {@link Sender} is missing from the given Injector.
      */
     /* package private */ CompletionStage<Void> sendAll(
+            final Report report,
             final ImmutableMultimap<Recipient, ReportFormat> recipientToFormats,
-            final ImmutableMap<ReportFormat, RenderedReport> formatToRendered
+            final ImmutableMap<ReportFormat, RenderedReport> formatToRendered,
+            final Instant scheduled
     ) {
         final CompletableFuture<?>[] futures = recipientToFormats
                 .asMap()
@@ -147,14 +156,15 @@ public final class ReportExecutionContext {
             final S source,
             final F format
     ) {
-        @SuppressWarnings("unchecked")
-        final Renderer<S, F> result = _renderers.getOrDefault(source.getType(), ImmutableMap.of()).get(format.getMimeType());
+        final Renderer<?, ?> result = _renderers.getOrDefault(source.getType(), ImmutableMap.of()).get(format.getMimeType());
         if (result == null) {
             throw new IllegalArgumentException(
                     "no Renderer exists for source type " + source.getType() + ", MIME type " + format.getMimeType()
             );
         }
-        return result;
+        @SuppressWarnings("unchecked")
+        final Renderer<S, F> uncheckedResult = (Renderer<S, F>) result;
+        return uncheckedResult;
     }
 
     /* package private */ Sender getSender(final Recipient recipient) {
@@ -177,15 +187,17 @@ public final class ReportExecutionContext {
     /**
      * Public constructor.
      *
+     * @param clock Clock to use to get the current time.
      * @param injector Guice Injector to load the classes specified in the config.
      * @param environment Environment used to load the classes specified in the config.
      * @param config Config to identify {@link Renderer}s / {@link Sender}s / other necessary objects for report execution.
      */
     @Inject
-    public ReportExecutionContext(final Injector injector, final Environment environment, final Config config) {
+    public ReportExecutionContext(final Clock clock, final Injector injector, final Environment environment, final Config config) {
+        _clock = clock;
         if (config.hasPath("reporting")) {
             _renderers = transformMap(
-                    this.<Renderer>loadMapMapObject(injector, environment, config.getObject("reporting.renderers")),
+                    this.<Renderer<?, ?>>loadMapMapObject(injector, environment, config.getObject("reporting.renderers")),
                     SourceType::valueOf,
                     v -> transformMap(v, MediaType::parse, v2 -> v2)
             );
@@ -240,7 +252,8 @@ public final class ReportExecutionContext {
         ));
     }
 
-    private final ImmutableMap<SourceType, ImmutableMap<MediaType, Renderer>> _renderers;
+    private final Clock _clock;
+    private final ImmutableMap<SourceType, ImmutableMap<MediaType, Renderer<?, ?>>> _renderers;
     private final ImmutableMap<RecipientType, Sender> _senders;
 
 }

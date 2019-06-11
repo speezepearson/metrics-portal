@@ -21,7 +21,6 @@ import com.arpnetworking.metrics.portal.reports.Renderer;
 import com.arpnetworking.metrics.portal.reports.impl.chrome.DevToolsFactory;
 import com.arpnetworking.metrics.portal.reports.impl.chrome.DevToolsService;
 import com.google.inject.Inject;
-import models.internal.impl.DefaultRenderedReport;
 import models.internal.impl.GrafanaReportPanelReportSource;
 import models.internal.impl.HtmlReportFormat;
 
@@ -37,22 +36,17 @@ import java.util.concurrent.CompletionStage;
  */
 public final class HtmlScreenshotRenderer implements Renderer<GrafanaReportPanelReportSource, HtmlReportFormat> {
     @Override
-    public CompletionStage<RenderedReport> render(
+    public <B extends RenderedReport.Builder<B, ?>> CompletionStage<B> render(
             final GrafanaReportPanelReportSource source,
             final HtmlReportFormat format,
-            final Instant scheduled
+            final Instant scheduled,
+            final B builder
     ) {
         final DevToolsService dts = _devToolsFactory.create(source.getWebPageReportSource().ignoresCertificateErrors());
-        final CompletableFuture<RenderedReport> result = new CompletableFuture<>();
+        final CompletableFuture<B> result = new CompletableFuture<>();
         dts.onEvent("reportrendered", () -> {
             final String srcdoc = (String) dts.evaluate("document.getElementsByClassName('rendered-markdown-container')[0].srcdoc");
-            result.complete(new DefaultRenderedReport.Builder()
-                    .setFormat(format)
-                    .setScheduledFor(scheduled)
-                    .setGeneratedAt(Instant.now())
-                    .setBytes(srcdoc.getBytes(StandardCharsets.UTF_8))
-                    .build()
-            );
+            result.complete(builder.setBytes(srcdoc.getBytes(StandardCharsets.UTF_8)));
         });
         dts.navigate(Utils.getURI(source, scheduled).toString());
         return result;
