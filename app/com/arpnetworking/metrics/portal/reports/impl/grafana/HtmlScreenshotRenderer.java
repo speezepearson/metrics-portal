@@ -54,7 +54,7 @@ public final class HtmlScreenshotRenderer implements Renderer<GrafanaReportPanel
                     .build()
             );
         });
-        dts.navigate(source.getWebPageReportSource().getUri().toString());
+        dts.navigate(Utils.getURI(source, scheduled).toString());
         return result;
     }
 

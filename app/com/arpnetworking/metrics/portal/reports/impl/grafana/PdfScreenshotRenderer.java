@@ -59,7 +59,7 @@ public final class PdfScreenshotRenderer implements Renderer<GrafanaReportPanelR
                 + "window.dispatch(new Event('pagereplacedbyreport'));\n"
             );
         });
-        dts.navigate(source.getWebPageReportSource().getUri().toString());
+        dts.navigate(Utils.getURI(source, scheduled).toString());
         return result;
     }
 
