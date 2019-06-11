@@ -506,6 +506,9 @@ public final class DatabaseReportRepository implements ReportRepository {
             ebeanSource.setUri(source.getWebPageReportSource().getUri());
             ebeanSource.setTriggeringEventName(source.getWebPageReportSource().getTriggeringEventName());
             ebeanSource.setTitle(source.getWebPageReportSource().getTitle());
+            ebeanSource.setTimeRangePeriod(source.getTimeRangePeriod());
+            ebeanSource.setTimeRangeWidthPeriods(source.getTimeRangeWidthPeriods());
+            ebeanSource.setTimeRangeEndPeriodsAgo(source.getTimeRangeEndPeriodsAgo());
             return ebeanSource;
         }
     };
