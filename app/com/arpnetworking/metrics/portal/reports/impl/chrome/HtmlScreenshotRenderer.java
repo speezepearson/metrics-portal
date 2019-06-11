@@ -19,7 +19,6 @@ package com.arpnetworking.metrics.portal.reports.impl.chrome;
 import com.arpnetworking.metrics.portal.reports.RenderedReport;
 import com.arpnetworking.metrics.portal.reports.Renderer;
 import com.google.inject.Inject;
-import models.internal.impl.DefaultRenderedReport;
 import models.internal.impl.HtmlReportFormat;
 import models.internal.impl.WebPageReportSource;
 
@@ -35,22 +34,17 @@ import java.util.concurrent.CompletionStage;
  */
 public final class HtmlScreenshotRenderer implements Renderer<WebPageReportSource, HtmlReportFormat> {
     @Override
-    public CompletionStage<RenderedReport> render(
+    public <B extends RenderedReport.Builder<B, ?>> CompletionStage<B> render(
             final WebPageReportSource source,
             final HtmlReportFormat format,
-            final Instant scheduled
+            final Instant scheduled,
+            final B builder
     ) {
         final DevToolsService dts = _devToolsFactory.create(source.ignoresCertificateErrors());
-        final CompletableFuture<RenderedReport> result = new CompletableFuture<>();
+        final CompletableFuture<B> result = new CompletableFuture<>();
         dts.onLoad(() -> {
             final String srcdoc = (String) dts.evaluate("document.documentElement.outerHTML");
-            result.complete(new DefaultRenderedReport.Builder()
-                    .setFormat(format)
-                    .setScheduledFor(scheduled)
-                    .setGeneratedAt(Instant.now())
-                    .setBytes(srcdoc.getBytes(StandardCharsets.UTF_8))
-                    .build()
-            );
+            result.complete(builder.setBytes(srcdoc.getBytes(StandardCharsets.UTF_8)));
         });
         dts.navigate(source.getUri().toString());
         return result;

@@ -19,7 +19,6 @@ package com.arpnetworking.metrics.portal.reports.impl.chrome;
 import com.arpnetworking.metrics.portal.reports.RenderedReport;
 import com.arpnetworking.metrics.portal.reports.Renderer;
 import com.google.inject.Inject;
-import models.internal.impl.DefaultRenderedReport;
 import models.internal.impl.PdfReportFormat;
 import models.internal.impl.WebPageReportSource;
 
@@ -34,20 +33,15 @@ import java.util.concurrent.CompletionStage;
  */
 public final class PdfScreenshotRenderer implements Renderer<WebPageReportSource, PdfReportFormat> {
     @Override
-    public CompletionStage<RenderedReport> render(
+    public <B extends RenderedReport.Builder<B, ?>> CompletionStage<B> render(
             final WebPageReportSource source,
             final PdfReportFormat format,
-            final Instant scheduled
+            final Instant scheduled,
+            final B builder
     ) {
         final DevToolsService dts = _devToolsFactory.create(source.ignoresCertificateErrors());
-        final CompletableFuture<RenderedReport> result = new CompletableFuture<>();
-        dts.onLoad(() -> result.complete(new DefaultRenderedReport.Builder()
-                    .setFormat(format)
-                    .setScheduledFor(scheduled)
-                    .setGeneratedAt(Instant.now())
-                    .setBytes(dts.printToPdf(format.getWidthInches(), format.getHeightInches()))
-                    .build()
-        ));
+        final CompletableFuture<B> result = new CompletableFuture<>();
+        dts.onLoad(() -> result.complete(builder.setBytes(dts.printToPdf(format.getWidthInches(), format.getHeightInches()))));
         dts.navigate(source.getUri().toString());
         return result;
     }
