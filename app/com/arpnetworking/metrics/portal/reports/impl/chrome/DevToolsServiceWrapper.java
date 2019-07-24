@@ -26,6 +26,7 @@ import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Supplier;
 
 /**
@@ -37,6 +38,7 @@ public class DevToolsServiceWrapper implements DevToolsService {
     private final com.github.kklisura.cdt.services.ChromeService _chromeService;
     private final com.github.kklisura.cdt.services.types.ChromeTab _tab;
     private final com.github.kklisura.cdt.services.ChromeDevToolsService _dts;
+    private final AtomicBoolean _closed = new AtomicBoolean(false);
 
     /**
      * Constructor.
@@ -132,6 +134,9 @@ public class DevToolsServiceWrapper implements DevToolsService {
 
     @Override
     public void close() {
+        if (_closed.getAndSet(true)) {
+            return;
+        }
         _chromeService.closeTab(_tab);
         _dts.close();
     }

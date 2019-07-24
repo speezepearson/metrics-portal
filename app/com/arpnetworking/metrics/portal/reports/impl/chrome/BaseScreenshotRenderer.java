@@ -28,6 +28,7 @@ import models.internal.reports.ReportSource;
 import java.net.URI;
 import java.time.Duration;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.CompletionStage;
@@ -36,6 +37,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
 import javax.annotation.Nullable;
 
 /**
@@ -100,22 +102,29 @@ public abstract class BaseScreenshotRenderer<S extends ReportSource, F extends R
 
         final CompletableFuture<B> result = new CompletableFuture<>();
 
+        final AtomicReference<DevToolsService> dts = new AtomicReference<>();
         final Future<?> executionFuture = _renderExecutor.submit(() -> {
-            @Nullable DevToolsService dts = null;
             try {
-                dts = _devToolsFactory.create(getIgnoreCertificateErrors(source), _chromeArgs);
-                dts.navigate(getUri(source).toString());
-                whenLoaded(dts, source, format, timeRange, builder).thenAccept(result::complete);
+                dts.set(_devToolsFactory.create(getIgnoreCertificateErrors(source), _chromeArgs));
+                dts.get().navigate(getUri(source).toString());
+                whenLoaded(dts.get(), source, format, timeRange, builder)
+                        .whenComplete((x, e) -> {
+                            if (e != null) {
+                                result.completeExceptionally(e);
+                            } else {
+                                result.complete(x);
+                            }
+                            dts.get().close();
+                        });
             } catch (final InterruptedException | ExecutionException e) {
                 throw new CompletionException(e);
-            } finally {
-                if (dts != null) {
-                    dts.close();
-                }
             }
         });
 
-        result.whenComplete((x, e) -> executionFuture.cancel(true));
+        result.whenComplete((x, e) -> {
+            executionFuture.cancel(true);
+            Optional.ofNullable(dts.get()).ifPresent(DevToolsService::close);
+        });
 
         _timeoutExecutor.schedule(
                 () -> result.cancel(true),

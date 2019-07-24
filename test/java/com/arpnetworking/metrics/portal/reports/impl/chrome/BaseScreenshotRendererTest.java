@@ -53,7 +53,7 @@ public class BaseScreenshotRendererTest extends BaseChromeTest {
                 Mockito.mock(MockRenderedReportBuilder.class),
                 Duration.ofDays(1)
         );
-        Mockito.verify(_dts, Mockito.timeout(1000)).close();
+        Mockito.verify(_dts, Mockito.timeout(1000).atLeastOnce()).close();
     }
 
     @Test
@@ -67,7 +67,7 @@ public class BaseScreenshotRendererTest extends BaseChromeTest {
                 Duration.ofMillis(500)
         );
         Mockito.verify(renderer.getComplete(), Mockito.timeout(500)).thenApply(Mockito.any());
-        Mockito.verify(_dts, Mockito.timeout(1000)).close();
+        Mockito.verify(_dts, Mockito.timeout(1000).atLeastOnce()).close();
     }
 
     @Test
@@ -82,7 +82,7 @@ public class BaseScreenshotRendererTest extends BaseChromeTest {
         );
         Mockito.verify(renderer.getComplete(), Mockito.timeout(500)).thenApply(Mockito.any());
         future.cancel(true);
-        Mockito.verify(_dts, Mockito.timeout(1000)).close();
+        Mockito.verify(_dts, Mockito.timeout(1000).atLeastOnce()).close();
     }
 
     @Test
@@ -99,7 +99,7 @@ public class BaseScreenshotRendererTest extends BaseChromeTest {
                 Mockito.mock(MockRenderedReportBuilder.class),
                 Duration.ofMillis(500)
         );
-        Mockito.verify(_dts, Mockito.timeout(1000)).close();
+        Mockito.verify(_dts, Mockito.timeout(1000).atLeastOnce()).close();
     }
 
     @Test(timeout = 2000)
@@ -120,7 +120,7 @@ public class BaseScreenshotRendererTest extends BaseChromeTest {
         );
         navigationStarted.get();
         future.cancel(true);
-        Mockito.verify(_dts, Mockito.timeout(1000)).close();
+        Mockito.verify(_dts, Mockito.timeout(1000).atLeastOnce()).close();
     }
 
     private static final class MockRenderer extends BaseScreenshotRenderer<WebPageReportSource, HtmlReportFormat> {

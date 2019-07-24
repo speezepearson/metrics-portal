@@ -44,14 +44,18 @@ public interface DevToolsService {
     byte[] printToPdf(double pageWidth, double pageHeight);
 
     /**
+     *
      * Forces the tab to navigate to a new URL.
      *
      * @param url The URL to navigate to.
+     * @throws InterruptedException If the thread is interrupted while waiting for the page to load.
+     * @throws ExecutionException If something goes wrong while navigating to the page.
      */
     void navigate(String url) throws InterruptedException, ExecutionException;
 
     /**
-     * Closes the dev tools. After close() is called, any further interaction is illegal.
+     * Closes the dev tools. After close() is called, any further interaction is illegal
+     * (except further calls to close(), which are no-ops).
      */
     void close();
 
