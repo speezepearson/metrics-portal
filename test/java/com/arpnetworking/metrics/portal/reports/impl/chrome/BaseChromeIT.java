@@ -100,7 +100,7 @@ public class BaseChromeIT {
 
     @Before
     public void setUp() {
-        _renderService = new ThreadPoolExecutor(1, 1, 0, TimeUnit.SECONDS, new ArrayBlockingQueue<>(100));
+        _renderService = new ThreadPoolExecutor(1, 1, 1, TimeUnit.DAYS, new ArrayBlockingQueue<>(100));
         _timeoutService = new ScheduledThreadPoolExecutor(1);
     }
 }
