@@ -49,7 +49,7 @@ import static com.github.tomakehurst.wiremock.core.WireMockConfiguration.wireMoc
  *
  * @author Spencer Pearson (spencerpearson at dropbox dot com)
  */
-public class BaseChromeIT {
+public class BaseChromeTest {
 
     @Rule
     public WireMockRule _wireMock = new WireMockRule(wireMockConfig().dynamicPort());
@@ -75,7 +75,7 @@ public class BaseChromeIT {
      * Path to the Chrome binary to use for Chrome-renderer tests.
      */
     private static final Optional<String> CHROME_PATH = POSSIBLE_CHROME_PATHS.stream()
-            .filter(BaseChromeIT::isPathExecutable)
+            .filter(BaseChromeTest::isPathExecutable)
             .findFirst();
 
     /**

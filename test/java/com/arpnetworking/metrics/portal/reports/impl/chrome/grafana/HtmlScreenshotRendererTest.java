@@ -16,18 +16,20 @@
 package com.arpnetworking.metrics.portal.reports.impl.chrome.grafana;
 
 import com.arpnetworking.metrics.portal.TestBeanFactory;
-import com.arpnetworking.metrics.portal.reports.impl.chrome.BaseChromeIT;
+import com.arpnetworking.metrics.portal.reports.impl.chrome.BaseChromeTest;
 import com.arpnetworking.metrics.portal.reports.impl.chrome.grafana.testing.Utils;
 import com.arpnetworking.metrics.portal.reports.impl.testing.MockRenderedReportBuilder;
+import com.github.tomakehurst.wiremock.common.Strings;
 import com.typesafe.config.Config;
 import models.internal.TimeRange;
 import models.internal.impl.GrafanaReportPanelReportSource;
-import models.internal.impl.PdfReportFormat;
+import models.internal.impl.HtmlReportFormat;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
 
 import java.net.URI;
+import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.concurrent.CompletionStage;
@@ -36,31 +38,31 @@ import java.util.concurrent.TimeUnit;
 import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
 import static com.github.tomakehurst.wiremock.client.WireMock.get;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo;
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.assertEquals;
 
 /**
- * Tests class {@link PdfGrafanaScreenshotRenderer}.
+ * Tests class {@link HtmlGrafanaScreenshotRenderer}.
  *
- * This test is ignored on systems where it can't find Chrome -- see {@link BaseChromeIT} for instructions for manual execution.
+ * This test is ignored on systems where it can't find Chrome -- see {@link BaseChromeTest} for instructions for manual execution.
  *
  * @author Spencer Pearson (spencerpearson at dropbox dot com)
  */
-public class PdfScreenshotRendererIT extends BaseChromeIT {
+public class HtmlScreenshotRendererTest extends BaseChromeTest {
 
-    @Test
-    public void testRendering() throws Exception {
-        final MockRenderedReportBuilder builder = Mockito.mock(MockRenderedReportBuilder.class);
+    private void runTestWithRenderDelay(final Duration renderDelay) throws Exception {
         final Config config = CHROME_RENDERER_CONFIG;
+        final MockRenderedReportBuilder builder = Mockito.mock(MockRenderedReportBuilder.class);
 
         _wireMock.givenThat(
                 get(urlEqualTo("/"))
                         .willReturn(aResponse()
                                 .withHeader("Content-Type", "text/html")
-                                .withBody(Utils.mockGrafanaReportPanelPage(Duration.ZERO))
+                                .withBody(Utils.mockGrafanaReportPanelPage(renderDelay))
                         )
         );
-        final PdfReportFormat format = new PdfReportFormat.Builder().setWidthInches(8.5f).setHeightInches(11f).build();
-        final PdfGrafanaScreenshotRenderer renderer = new PdfGrafanaScreenshotRenderer(config, _renderService, _timeoutService);
+
+        final HtmlReportFormat format = new HtmlReportFormat.Builder().build();
+        final HtmlGrafanaScreenshotRenderer renderer = new HtmlGrafanaScreenshotRenderer(config, _renderService, _timeoutService);
         final GrafanaReportPanelReportSource source = new GrafanaReportPanelReportSource.Builder()
                 .setWebPageReportSource(
                         TestBeanFactory.createWebPageReportSourceBuilder()
@@ -80,6 +82,17 @@ public class PdfScreenshotRendererIT extends BaseChromeIT {
 
         final ArgumentCaptor<byte[]> bytes = ArgumentCaptor.forClass(byte[].class);
         Mockito.verify(builder).setBytes(bytes.capture());
-        assertTrue(bytes.getValue().length > 0);
+        final String response = Strings.stringFromBytes(bytes.getValue(), StandardCharsets.UTF_8);
+        assertEquals(response, "content we care about");
+    }
+
+    @Test
+    public void testImmediateRendering() throws Exception {
+        runTestWithRenderDelay(Duration.ZERO);
+    }
+
+    @Test
+    public void testDelayedRendering() throws Exception {
+        runTestWithRenderDelay(Duration.ofSeconds(2));
     }
 }

@@ -40,11 +40,11 @@ import static org.junit.Assert.assertTrue;
 /**
  * Tests class {@link HtmlScreenshotRenderer}.
  *
- * This test is ignored on systems where it can't find Chrome -- see {@link BaseChromeIT} for instructions for manual execution.
+ * This test is ignored on systems where it can't find Chrome -- see {@link BaseChromeTest} for instructions for manual execution.
  *
  * @author Spencer Pearson (spencerpearson at dropbox dot com)
  */
-public class HtmlScreenshotRendererIT extends BaseChromeIT {
+public class HtmlScreenshotRendererTest extends BaseChromeTest {
 
     @Test
     public void testRendering() throws Exception {
