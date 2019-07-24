@@ -57,7 +57,7 @@ public class PdfScreenshotRendererIT extends BaseChromeIT {
         );
 
         final PdfReportFormat format = new PdfReportFormat.Builder().setWidthInches(8.5f).setHeightInches(11f).build();
-        final PdfScreenshotRenderer renderer = new PdfScreenshotRenderer(config);
+        final PdfScreenshotRenderer renderer = new PdfScreenshotRenderer(config, _renderService, _timeoutService);
         final WebPageReportSource source = TestBeanFactory.createWebPageReportSourceBuilder()
                 .setUri(URI.create("http://localhost:" + _wireMock.port()))
                 .build();
@@ -66,7 +66,9 @@ public class PdfScreenshotRendererIT extends BaseChromeIT {
                 source,
                 format,
                 new TimeRange(Instant.EPOCH, Instant.EPOCH),
-                builder);
+                builder,
+                DEFAULT_TIMEOUT
+        );
 
         stage.toCompletableFuture().get(20, TimeUnit.SECONDS);
 

@@ -60,7 +60,7 @@ public class PdfScreenshotRendererIT extends BaseChromeIT {
                         )
         );
         final PdfReportFormat format = new PdfReportFormat.Builder().setWidthInches(8.5f).setHeightInches(11f).build();
-        final PdfGrafanaScreenshotRenderer renderer = new PdfGrafanaScreenshotRenderer(config);
+        final PdfGrafanaScreenshotRenderer renderer = new PdfGrafanaScreenshotRenderer(config, _renderService, _timeoutService);
         final GrafanaReportPanelReportSource source = new GrafanaReportPanelReportSource.Builder()
                 .setWebPageReportSource(
                         TestBeanFactory.createWebPageReportSourceBuilder()
@@ -72,7 +72,9 @@ public class PdfScreenshotRendererIT extends BaseChromeIT {
                 source,
                 format,
                 new TimeRange(Instant.EPOCH, Instant.EPOCH),
-                builder);
+                builder,
+                DEFAULT_TIMEOUT
+        );
 
         stage.toCompletableFuture().get(20, TimeUnit.SECONDS);
 

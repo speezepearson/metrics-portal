@@ -20,8 +20,6 @@ import com.arpnetworking.metrics.portal.reports.RenderedReport;
 import com.arpnetworking.metrics.portal.reports.Renderer;
 import com.arpnetworking.steno.Logger;
 import com.arpnetworking.steno.LoggerFactory;
-import com.google.inject.Inject;
-import com.google.inject.assistedinject.Assisted;
 import com.typesafe.config.Config;
 import models.internal.TimeRange;
 import models.internal.reports.ReportFormat;
@@ -30,7 +28,15 @@ import models.internal.reports.ReportSource;
 import java.net.URI;
 import java.time.Duration;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
 import java.util.concurrent.CompletionStage;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Future;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
+import javax.annotation.Nullable;
 
 /**
  * Uses a headless Chrome instance to render a page as HTML.
@@ -78,41 +84,46 @@ public abstract class BaseScreenshotRenderer<S extends ReportSource, F extends R
     );
 
     @Override
-    public <B extends RenderedReport.Builder<B, ?>> CompletionStage<B> render(
+    public <B extends RenderedReport.Builder<B, ?>> CompletableFuture<B> render(
             final S source,
             final F format,
             final TimeRange timeRange,
             final B builder,
             final Duration timeout
     ) {
-        final DevToolsService dts = _devToolsFactory.create(getIgnoreCertificateErrors(source), _chromeArgs);
         LOGGER.debug()
                 .setMessage("rendering")
                 .addData("source", source)
                 .addData("format", format)
                 .addData("timeRange", timeRange)
                 .log();
-        return dts.navigate(getUri(source).toString())
-                .thenCompose(whatever -> {
-                    LOGGER.debug()
-                            .setMessage("page load completed")
-                            .addData("source", source)
-                            .addData("format", format)
-                            .addData("timeRange", timeRange)
-                            .log();
-                    return whenLoaded(dts, source, format, timeRange, builder);
-                })
-                .whenComplete((x, e) -> {
-                    LOGGER.debug()
-                            .setMessage("rendering completed")
-                            .addData("source", source)
-                            .addData("format", format)
-                            .addData("timeRange", timeRange)
-                            .addData("result", x)
-                            .addData("exception", e)
-                            .log();
+
+        final CompletableFuture<B> result = new CompletableFuture<>();
+
+        final Future<?> executionFuture = _renderExecutor.submit(() -> {
+            @Nullable DevToolsService dts = null;
+            try {
+                dts = _devToolsFactory.create(getIgnoreCertificateErrors(source), _chromeArgs);
+                dts.navigate(getUri(source).toString());
+                whenLoaded(dts, source, format, timeRange, builder).thenAccept(result::complete);
+            } catch (final InterruptedException | ExecutionException e) {
+                throw new CompletionException(e);
+            } finally {
+                if (dts != null) {
                     dts.close();
-                });
+                }
+            }
+        });
+
+        result.whenComplete((x, e) -> executionFuture.cancel(true));
+
+        _timeoutExecutor.schedule(
+                () -> result.cancel(true),
+                timeout.toNanos(),
+                TimeUnit.NANOSECONDS
+        );
+
+        return result;
     }
 
     /**
@@ -122,15 +133,38 @@ public abstract class BaseScreenshotRenderer<S extends ReportSource, F extends R
      * <ul>
      *   <li>{@code chromePath} -- the path to the Chrome binary to use to render pages.</li>
      * </ul>
+     * @param renderExecutor used to run individual rendering operations
+     * @param timeoutExecutor used to schedule timeouts on individual rendering operations
      */
-    @Inject
-    protected BaseScreenshotRenderer(@Assisted final Config config) {
-        _devToolsFactory = new DevToolsFactory(config.getString("chromePath"));
+    protected BaseScreenshotRenderer(
+            final Config config,
+            final ExecutorService renderExecutor,
+            final ScheduledExecutorService timeoutExecutor
+    ) {
+        this(
+                config,
+                renderExecutor,
+                timeoutExecutor,
+                new DefaultDevToolsFactory(config.getString("chromePath"))
+        );
+    }
+
+    /* package private */ BaseScreenshotRenderer(
+            final Config config,
+            final ExecutorService renderExecutor,
+            final ScheduledExecutorService timeoutExecutor,
+            final DevToolsFactory devToolsFactory
+    ) {
+        _devToolsFactory = devToolsFactory;
         _chromeArgs = config.getObject("chromeArgs").unwrapped();
+        _renderExecutor = renderExecutor;
+        _timeoutExecutor = timeoutExecutor;
     }
 
     private final DevToolsFactory _devToolsFactory;
     private final Map<String, Object> _chromeArgs;
+    private final ExecutorService _renderExecutor;
+    private final ScheduledExecutorService _timeoutExecutor;
 
     private static final Logger LOGGER = LoggerFactory.getLogger(BaseScreenshotRenderer.class);
 }

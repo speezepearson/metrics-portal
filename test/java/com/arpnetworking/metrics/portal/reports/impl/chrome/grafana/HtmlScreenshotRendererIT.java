@@ -62,7 +62,7 @@ public class HtmlScreenshotRendererIT extends BaseChromeIT {
         );
 
         final HtmlReportFormat format = new HtmlReportFormat.Builder().build();
-        final HtmlGrafanaScreenshotRenderer renderer = new HtmlGrafanaScreenshotRenderer(config);
+        final HtmlGrafanaScreenshotRenderer renderer = new HtmlGrafanaScreenshotRenderer(config, _renderService, _timeoutService);
         final GrafanaReportPanelReportSource source = new GrafanaReportPanelReportSource.Builder()
                 .setWebPageReportSource(
                         TestBeanFactory.createWebPageReportSourceBuilder()
@@ -74,7 +74,9 @@ public class HtmlScreenshotRendererIT extends BaseChromeIT {
                 source,
                 format,
                 new TimeRange(Instant.EPOCH, Instant.EPOCH),
-                builder);
+                builder,
+                DEFAULT_TIMEOUT
+        );
 
         stage.toCompletableFuture().get(20, TimeUnit.SECONDS);
 

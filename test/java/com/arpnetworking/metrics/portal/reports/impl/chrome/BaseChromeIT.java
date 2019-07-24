@@ -20,13 +20,23 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
+import models.internal.TimeRange;
 import org.junit.Assume;
+import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Rule;
 
 import java.nio.file.FileSystems;
 import java.nio.file.Files;
+import java.time.Duration;
+import java.time.Instant;
 import java.util.Optional;
+import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledThreadPoolExecutor;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 
 import static com.github.tomakehurst.wiremock.core.WireMockConfiguration.wireMockConfig;
 
@@ -43,6 +53,12 @@ public class BaseChromeIT {
 
     @Rule
     public WireMockRule _wireMock = new WireMockRule(wireMockConfig().dynamicPort());
+
+    protected static final TimeRange DEFAULT_TIME_RANGE = new TimeRange(Instant.EPOCH, Instant.EPOCH);
+    protected static final Duration DEFAULT_TIMEOUT = Duration.ofSeconds(15);
+
+    protected ExecutorService _renderService;
+    protected ScheduledExecutorService _timeoutService;
 
     private static final ImmutableList<String> POSSIBLE_CHROME_PATHS = ImmutableList.of(
             "/usr/bin/chromium",
@@ -80,5 +96,11 @@ public class BaseChromeIT {
     @BeforeClass
     public static void setUpClass() {
         Assume.assumeTrue("could not find Chrome in any likely location", CHROME_PATH.isPresent());
+    }
+
+    @Before
+    public void setUp() {
+        _renderService = new ThreadPoolExecutor(1, 1, 0, TimeUnit.SECONDS, new ArrayBlockingQueue<>(100));
+        _timeoutService = new ScheduledThreadPoolExecutor(1);
     }
 }
