@@ -75,7 +75,7 @@ public class RollupManager extends AbstractActorWithTimers {
                         work -> _periodicMetrics.recordGauge("rollup/manager/queue_size", _rollupDefinitions.size()))
                 .match(
                         RollupDefinition.class,
-                        work -> _rollupDefinitions.add(work))
+                        this::addWork)
                 .match(
                         RollupExecutor.FinishRollupMessage.class,
                         this::executorFinished
@@ -145,8 +145,12 @@ public class RollupManager extends AbstractActorWithTimers {
                     .setThrowable(failure.get())
                     .log();
             metrics.addAnnotation("outcome", "split_and_retry");
-            children.forEach(child -> getSelf().tell(child, getSelf()));
+            children.forEach(this::addWork);
         }
+    }
+
+    private void addWork(final RollupDefinition work) {
+        _rollupDefinitions.add(work);
     }
 
     private Optional<RollupDefinition> getNextRollup() {
