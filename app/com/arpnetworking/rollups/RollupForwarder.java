@@ -17,6 +17,7 @@ package com.arpnetworking.rollups;
 
 import akka.actor.AbstractActor;
 import akka.actor.ActorRef;
+import com.arpnetworking.metrics.incubator.PeriodicMetrics;
 
 import javax.inject.Inject;
 import javax.inject.Named;
@@ -26,6 +27,7 @@ import javax.inject.Named;
  */
 public class RollupForwarder extends AbstractActor {
     private final ActorRef _rollupManager;
+    private final PeriodicMetrics _periodicMetrics;
 
     /**
      * {@link RollupForwarder} actor constructor.
@@ -34,16 +36,21 @@ public class RollupForwarder extends AbstractActor {
      */
     @Inject
     public RollupForwarder(
-            @Named("RollupManager") final ActorRef rollupManager) {
+            @Named("RollupManager") final ActorRef rollupManager,
+            final PeriodicMetrics periodicMetrics
+    ) {
         _rollupManager = rollupManager;
+        _periodicMetrics = periodicMetrics;
     }
 
     @Override
     public Receive createReceive() {
         return receiveBuilder()
                 .matchAny(
-                        msg -> _rollupManager.forward(msg, context())
-
+                        msg -> {
+                            _periodicMetrics.recordCounter("rollups/manager_forwarder/forwarded", 1);
+                            _rollupManager.forward(msg, context());
+                        }
                 )
                 .build();
     }
