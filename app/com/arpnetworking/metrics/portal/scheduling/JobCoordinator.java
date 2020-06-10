@@ -25,8 +25,11 @@ import com.arpnetworking.metrics.impl.TsdUnit;
 import com.arpnetworking.metrics.incubator.PeriodicMetrics;
 import com.arpnetworking.metrics.portal.organizations.OrganizationRepository;
 import com.arpnetworking.metrics.util.PagingIterator;
+import com.arpnetworking.rollups.RollupDefinition;
+import com.arpnetworking.rollups.RollupPeriod;
 import com.arpnetworking.steno.Logger;
 import com.arpnetworking.steno.LoggerFactory;
+import com.google.common.collect.ImmutableMultimap;
 import com.google.inject.Injector;
 import models.internal.Organization;
 import models.internal.scheduling.Job;
@@ -125,6 +128,17 @@ public final class JobCoordinator<T> extends AbstractPersistentActorWithTimers {
             final OrganizationRepository organizationRepository,
             final ActorRef jobExecutorRegion,
             final PeriodicMetrics periodicMetrics) {
+        LOGGER.error()
+                .setMessage("SRP -- logging a RollupDefinition")
+                .addData("defn", new RollupDefinition.Builder()
+                        .setStartTime(Instant.now())
+                        .setSourceMetricName("foo")
+                        .setDestinationMetricName("bar")
+                        .setPeriod(RollupPeriod.HOURLY)
+                        .setAllMetricTags(ImmutableMultimap.of("k", "v"))
+                        .build()
+                )
+                .log();
         _injector = injector;
         _clock = clock;
         _repositoryType = repositoryType;
