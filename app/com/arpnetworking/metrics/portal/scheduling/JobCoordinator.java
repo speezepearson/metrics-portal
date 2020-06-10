@@ -18,6 +18,7 @@ package com.arpnetworking.metrics.portal.scheduling;
 import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.persistence.AbstractPersistentActorWithTimers;
+import com.arpnetworking.commons.jackson.databind.ObjectMapperFactory;
 import com.arpnetworking.metrics.Unit;
 import com.arpnetworking.metrics.impl.BaseScale;
 import com.arpnetworking.metrics.impl.BaseUnit;
@@ -138,6 +139,17 @@ public final class JobCoordinator<T> extends AbstractPersistentActorWithTimers {
                         .setAllMetricTags(ImmutableMultimap.of("k", "v"))
                         .build()
                 )
+                .log();
+        LOGGER.error()
+                .setMessage("SRP -- logging a RollupDefinition JSON")
+                .addData("defn", ObjectMapperFactory.getInstance().valueToTree(new RollupDefinition.Builder()
+                        .setStartTime(Instant.now())
+                        .setSourceMetricName("foo")
+                        .setDestinationMetricName("bar")
+                        .setPeriod(RollupPeriod.HOURLY)
+                        .setAllMetricTags(ImmutableMultimap.of("k", "v"))
+                        .build()
+                ))
                 .log();
         _injector = injector;
         _clock = clock;
