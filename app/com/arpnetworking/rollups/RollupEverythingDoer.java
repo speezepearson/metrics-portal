@@ -9,6 +9,7 @@ import com.google.common.collect.Sets;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -88,8 +89,42 @@ public class RollupEverythingDoer {
                 .build()
         );
     }
-    private CompletionStage<Void> doRollupWithRetry(RollupDefinition defn) {
+    private CompletionStage<Void> doRollup(RollupDefinition defn) {
 
+    }
+
+    private CompletionStage<Integer> getCount(String metricName, Instant startTime, Instant endTime) {}
+
+    private List<RollupDefinition> splitJobs(RollupDefinition defn) {}
+
+    private CompletionStage<Void> doAllJobs(Iterator<RollupDefinition> iter) {
+        if (!iter.hasNext()) {
+            return CompletableFuture.completedFuture(null);
+        }
+
+        return _kairosDbClient.queryMetrics(query).thenCompose((response) -> doAllJobs(iter));
+    }
+
+    private CompletionStage<Void> doRollupWithRetry(RollupDefinition defn) {
+        doRollup(defn)
+                .thenApply((_void) -> {
+                    // TODO: use completeablefuture
+                    Thread.sleep(1000L);
+                })
+                .thenApply((_void) -> getCount(defn.getSourceMetricName(), defn.getStartTime(), defn.getEndTime()))
+                .thenAcceptBoth(getCount(defn.getDestinationMetricName(), defn.getStartTime(), defn.getEndTime()),
+                        (srcCount, dstCount) -> {
+                            if (srcCount != dstCount) {
+                                // TODO: tag with more info
+                                throw new Exception("counts did not become consistent");
+                            }
+
+                            // TODO: log completion
+                        })
+                .exceptionally(throwable -> {
+                    List<RollupDefinition> childJobs = splitJobs(defn);
+
+                })
     }
 
     private static CompletableFuture<Void> allOf(Stream<CompletionStage<?>> futs) {
