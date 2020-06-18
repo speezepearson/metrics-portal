@@ -60,19 +60,14 @@ public class RollupEverythingDoer {
         });
     }
 
-    private CompletionStage<Void> rollupMetric(String metric) {
-        return _jobDatastore.getFirstUndone(metric).thenCompose(job -> {
-            if (!job.isPresent()) {
-                return CompletableFuture.completedFuture(null);
-            }
-            return mkdef(job.get())
-                    .thenCompose(this::doRollupWithRetry)
-                    .thenCompose(whatever ->
-                        _jobDatastore.markDone(job.get()).thenCompose(whatever2 ->
-                                rollupMetric(metric)
-                        )
-                    );
-        });
+    private void rollupMetric(String metric) throws ExecutionException, InterruptedException {
+        Optional<RollupJob> job = _jobDatastore.getFirstUndone(metric).toCompletableFuture().get();
+        while (job.isPresent()) {
+            final RollupDefinition defn = mkdef(job.get()).toCompletableFuture().get();
+            doRollupWithRetry(defn).toCompletableFuture().get();
+            _jobDatastore.markDone(job.get()).toCompletableFuture().get();
+            job = _jobDatastore.getFirstUndone(metric).toCompletableFuture().get();
+        }
     }
 
     private CompletionStage<RollupDefinition> mkdef(RollupJob rollupJob) {
