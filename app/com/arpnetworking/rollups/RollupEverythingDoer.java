@@ -64,7 +64,8 @@ public class RollupEverythingDoer {
             if (!job.isPresent()) {
                 return CompletableFuture.completedFuture(null);
             }
-            return doRollupWithRetry(mkdef(job.get()))
+            return mkdef(job.get())
+                    .thenCompose(this::doRollupWithRetry)
                     .thenCompose(whatever ->
                         _jobDatastore.markDone(job.get()).thenCompose(whatever2 ->
                                 rollupMetric(metric)
